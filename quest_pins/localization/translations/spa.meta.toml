@@ -1,0 +1,13 @@
+[asset_properties]
+"mods/quest_pins/ui/pin_quest" = "Fijar misión"
+"mods/quest_pins/ui/unpin_quest" = "Desfijar misión"
+"mods/quest_pins/ui/tracker_title" = "Misiones fijadas"
+"mods/quest_pins/ui/quest_item_obtained" = "Objeto de misión conseguido"
+"mods/quest_pins/ui/pin_limit_reached" = "Has alcanzado el límite de misiones fijadas"
+"mods/quest_pins/ui/settings_category" = "Quest Pins"
+"mods/quest_pins/ui/tracker_size" = "Tamaño del panel"
+"mods/quest_pins/ui/size_small" = "Pequeño"
+"mods/quest_pins/ui/size_medium" = "Mediano"
+"mods/quest_pins/ui/size_large" = "Grande"
+"mods/quest_pins/ui/play_sound" = "Sonido al conseguir objetos"
+"mods/quest_pins/ui/show_notifications" = "Avisos de objetos"

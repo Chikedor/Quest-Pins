@@ -1,0 +1,16 @@
+pin_quest = "Pin quest"
+unpin_quest = "Unpin quest"
+tracker_title = "Pinned quests"
+quest_item_obtained = "Quest item obtained"
+pin_limit_reached = "The pinned quest limit has been reached"
+settings_category = "Quest Pins"
+tracker_size = "Tracker size"
+size_small = "Small"
+size_medium = "Medium"
+size_large = "Large"
+play_sound = "Item alert sound"
+show_notifications = "Item notifications"
+
+[asset_properties]
+	[asset_properties.fiddle_renames]
+		"mods/quest_pins/ui" = ["*"]

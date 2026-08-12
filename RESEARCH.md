@@ -1,0 +1,73 @@
+# Technical research notes
+
+Research date: 2026-08-11–2026-08-12.
+
+## Supported versions
+
+- Fields of Mistria 1.0.2, Steam build 24619420.
+- MOMI/MMAPI 0.15.1, tag `v0.15.1`, commit `c57d90b785cd8546b512c1a4cc99946fd04e5318`.
+
+## Player-visible objective
+
+Allow active quests to be pinned from the Journal, retain them per save, show their current objective and relevant inventory counts in a compact HUD panel, and emit a vanilla-style sound and toast when a newly obtained item advances a pinned quest.
+
+Non-goals for 0.1.x: parsing localized objective prose, altering quest progression, tracking completed quests, or claiming acquisition alerts for non-item requirements.
+
+## Verified contracts
+
+- `QUEST_LOG.active.get(key)` returns an `ActiveQuest` with `quest`, `quest_name`, `blackboard`, and `current_stage` (`assets/gml/scripts/GameplaySystems/Quests/QuestLog.gml`, game 1.0.2).
+- A `QuestTask` exposes `description`, `requirements`, and `query_targets`; `Requirement.HasItem` parses to an array of `[ItemId, amount]` pairs (`QuestDatabase.gml` and `Requirements.gml`, game 1.0.2).
+- Vanilla renders those requirements from `ARI.inventory` through `Listing.Item`, `gather_listings_from_requirements`, and `render_quest_requirement` (`QuestLogMenu.gml`, game 1.0.2).
+- `ARI.inventory.item_id_quantity(item_id)` returns the live quantity across inventory slots (`Inventory.gml`, game 1.0.2).
+- `ToolbarMenu.update()` runs after its `InventorySubscriber` detects a change, then MOMI 0.15.1 emits `ui.menu_refreshed`; this supplies a bounded inventory-change edge without polling every acquisition source.
+- `ToolbarMenu.canvas` is a full HUD menu canvas under `ANCHOR.screen_canvas`; HUD hide/show transitions apply to that menu canvas, so tracker children follow vanilla HUD visibility.
+- The vanilla quest-detail scroller and pilot can host an idempotent added button. Quest Log rebuilds its right scroller without a general refresh hook, so the mod uses a watcher anchored outside `right_body`, matching the verified Find My Mistrian lifecycle pattern.
+- `TANGO.name_exists()` and `TANGO.play()` are the supported direct sound path; `SoundEffects/UI/UIExtraPositiveClick` is used by vanilla quest acceptance.
+
+Evidence was read from the installed Fields of Mistria 1.0.2 `assets.zip` and the official MOMI 0.15.1 source/tag.
+
+## Design decisions
+
+- Pinned keys live in MMAPI's per-save JSON sidecar, keeping vanilla save data untouched.
+- The tracker is a child of the vanilla Toolbar canvas and uses vanilla nine-slice boxes, fonts, LUTs, quest icons, and requirement renderers.
+- Its top coordinate is derived from `InfoHudMenu.bottom_backplate` (`y + height + 4`) rather than a guessed screen coordinate. This keeps it below both gold and essence, including the vanilla 24-to-15-pixel height change when essence is unavailable.
+- `tracker_width` is configurable from 120 to 240 pixels. Fonts and icons remain at native pixel scale; available wrapping and requirement-row width adapt to the configured card width.
+- Version 0.1.4 exposes three safe width presets (128, 160, and 208 pixels) inside a dedicated vanilla Settings category. It reuses `SettingsMenu.create_category`, `button`, `checkbox`, and `create_options_popup`, so mouse, keyboard, and controller behavior stays native while values persist through MMAPI config.
+- The tracker uses the same right inset as `InfoHudMenu.bottom_backplate` (`-6`). Header text disables line wrapping and is width-truncated with an ellipsis so it cannot escape the 21-pixel header.
+- Acquisition detection compares only item ids required by pinned current stages, and only on Toolbar inventory refreshes. The initial and post-pin snapshots establish a baseline and never generate retroactive alerts.
+- When one acquisition helps multiple pinned quests, each affected quest may receive its own toast, while the sound plays once for that refresh.
+
+## Rejected approaches
+
+- `array_pos(array, value) >= 0` is not a safe membership test in this runtime. When the value is absent, `array_pos` throws `value was not found in array` instead of returning `-1`. The first in-game Quest Log test captured this at `QuestPins.gml:172`. Membership checks use `array_contains`; `array_pos` is now called only after presence is established or when the element is structurally guaranteed to be a child of the target scroller.
+- Passing a local anonymous callback into a helper and reading outer local variables from that callback is unsafe in this runtime. Quest Pins 0.1.1 captured `_relevant` this way; at execution the VM looked for it as an object field and threw `no such field "_relevant"`. Version 0.1.2 replaces the callback traversal with an explicit array of requirement structs and ordinary loops.
+
+## Automated validation
+
+The official MOMI 0.15.1 CLI was run against the installable directory and the pristine game 1.0.2 backup:
+
+```powershell
+ModsOfMistriaInstaller-cli.exe --lint .\quest_pins C:\path\to\assets.bak.zip --strict-lints --compile-check require
+```
+
+Result:
+
+```text
+lint chikedor.quest_pins v0.1.0
+  gml: 1 file(s) installing under scripts/chikedor_quest_pins/
+  RESULT: OK - the apply would install this mod
+```
+
+A real MOMI apply with Find My Mistrian and Quest Pins enabled also passed the compile gate (`101` seamed/framework files plus one GML file for each mod) and reported `2 mod(s) installed`.
+
+## Manual validation
+
+Validated in game on 2026-08-12 against Fields of Mistria 1.0.2 and MOMI/MMAPI 0.15.1:
+
+- Opening the Quest Log and switching between active quests remains stable.
+- Pinning missions from the quest-detail button remains stable after the two rejected runtime approaches were replaced.
+- Three pinned quests render below the vanilla gold and essence block without covering it.
+- Long tracker titles stay inside their headers.
+- The in-game Quest Pins settings category and tracker-size presets work.
+
+The repository screenshots under `docs/images/` capture the verified pin control and three-card HUD layout.
