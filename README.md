@@ -28,8 +28,8 @@ Track several objectives and their live item progress from the game HUD:
 
 ### Requirements
 
-- Fields of Mistria 1.0.x (developed against 1.0.2, Steam build 24619420)
-- MOMI/MMAPI 0.15.1 or newer
+- Fields of Mistria 1.0.3 (Steam build 24742087)
+- MOMI/MMAPI 0.15.5 or newer
 
 ### Installation
 
@@ -66,6 +66,11 @@ Consulta varios objetivos y el progreso real de sus objetos desde el HUD del jue
 ### Instalación
 
 Copia únicamente la carpeta [`quest_pins`](quest_pins) dentro de `mods`, aplica el mod con MOMI e inicia el juego.
+
+### Requisitos
+
+- Fields of Mistria 1.0.3 (Steam build 24742087)
+- MOMI/MMAPI 0.15.5 o posterior
 
 ### Uso
 

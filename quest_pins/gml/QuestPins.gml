@@ -1,7 +1,7 @@
 // Quest Pins
-// Fields of Mistria 1.0.2 / MOMI + MMAPI 0.15.1
+// Fields of Mistria 1.0.3 / MOMI + MMAPI 0.15.5
 
-#macro QUEST_PINS_VERSION "0.1.4"
+#macro QUEST_PINS_VERSION "0.1.5"
 #macro QUEST_PINS_CONFIG_VERSION 2
 #macro QUEST_PINS_SAVE_VERSION 1
 #macro QP_TRACKER_X -6

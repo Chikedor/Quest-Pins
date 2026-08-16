@@ -4,8 +4,8 @@
 
 - Mod: `Quest Pins`
 - Installable directory: `quest_pins`
-- Supported game version: `Fields of Mistria 1.0.2 (Steam build 24619420)`
-- Supported MOMI/MMAPI version: `0.15.1 (v0.15.1, c57d90b785cd8546b512c1a4cc99946fd04e5318)`
+- Supported game version: `Fields of Mistria 1.0.3 (Steam build 24742087)`
+- Supported MOMI/MMAPI version: `0.15.5 (v0.15.5, 9b90ee213309e7aaca5870ac43272682b6f595ad)`
 
 Before changing code, read this file, `README.md`, `RESEARCH.md`, and the sibling `Modding Knowledge/` project.
 

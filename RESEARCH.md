@@ -1,11 +1,11 @@
 # Technical research notes
 
-Research date: 2026-08-11–2026-08-12.
+Research date: 2026-08-11–2026-08-16.
 
 ## Supported versions
 
-- Fields of Mistria 1.0.2, Steam build 24619420.
-- MOMI/MMAPI 0.15.1, tag `v0.15.1`, commit `c57d90b785cd8546b512c1a4cc99946fd04e5318`.
+- Fields of Mistria 1.0.3, Steam build 24742087.
+- MOMI/MMAPI 0.15.5, tag `v0.15.5`, commit `9b90ee213309e7aaca5870ac43272682b6f595ad`.
 
 ## Player-visible objective
 
@@ -24,7 +24,7 @@ Non-goals for 0.1.x: parsing localized objective prose, altering quest progressi
 - The vanilla quest-detail scroller and pilot can host an idempotent added button. Quest Log rebuilds its right scroller without a general refresh hook, so the mod uses a watcher anchored outside `right_body`, matching the verified Find My Mistrian lifecycle pattern.
 - `TANGO.name_exists()` and `TANGO.play()` are the supported direct sound path; `SoundEffects/UI/UIExtraPositiveClick` is used by vanilla quest acceptance.
 
-Evidence was read from the installed Fields of Mistria 1.0.2 `assets.zip` and the official MOMI 0.15.1 source/tag.
+The contracts above were rechecked for Fields of Mistria 1.0.3. `Inventory.gml`, `QuestLog.gml`, `Requirements.gml`, and `InfoHudMenu.gml` are byte-identical to the previously verified pristine sources. Differences in `QuestLogMenu.gml`, `SettingsMenu.gml`, `ToolbarMenu.gml`, and `Node.gml` are limited to the expected MMAPI localization rewrite and UI hook seams. Evidence was read from the pristine 1.0.3 backup, the installed asset, and the official MOMI 0.15.5 source/tag.
 
 ## Design decisions
 
@@ -44,7 +44,7 @@ Evidence was read from the installed Fields of Mistria 1.0.2 `assets.zip` and th
 
 ## Automated validation
 
-The official MOMI 0.15.1 CLI was run against the installable directory and the pristine game 1.0.2 backup:
+The official MOMI 0.15.5 CLI was run against the installable directory and the pristine game 1.0.3 backup:
 
 ```powershell
 ModsOfMistriaInstaller-cli.exe --lint .\quest_pins C:\path\to\assets.bak.zip --strict-lints --compile-check require
@@ -53,12 +53,12 @@ ModsOfMistriaInstaller-cli.exe --lint .\quest_pins C:\path\to\assets.bak.zip --s
 Result:
 
 ```text
-lint chikedor.quest_pins v0.1.0
+lint chikedor.quest_pins v0.1.5
   gml: 1 file(s) installing under scripts/chikedor_quest_pins/
   RESULT: OK - the apply would install this mod
 ```
 
-A real MOMI apply with Find My Mistrian and Quest Pins enabled also passed the compile gate (`101` seamed/framework files plus one GML file for each mod) and reported `2 mod(s) installed`.
+A real MOMI 0.15.5 apply with Find My Mistrian and Quest Pins enabled passed the compile gate (`100` seamed/framework files plus one GML file for each mod) and reported `2 mod(s) installed`, including Quest Pins 0.1.5.
 
 ## Manual validation
 
