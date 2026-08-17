@@ -7,11 +7,11 @@ Pin active quests to a compact HUD panel and get an in-game sound plus notificat
 ### Features
 
 - Adds a **Pin quest / Unpin quest** button to active quest details in the Journal.
-- Keeps up to three quests visible in a compact panel on the right side of the HUD.
-- Places the panel immediately below the vanilla money and essence display.
+- Keeps up to three quests visible in a compact panel on either side of the HUD.
+- Places the panel on either side of the HUD and dynamically follows the visible vanilla HUD above it: money and essence on the right, or health, stamina, mana, and status effects on the left.
 - Keeps long quest titles on one line and shortens them with an ellipsis when necessary.
 - Shows the current objective and live inventory progress for `has_item` requirements.
-- Plays a subtle vanilla UI sound and shows a localized notification when a newly obtained item advances a pinned quest.
+- Plays a subtle vanilla UI sound and shows a localized notification when a newly obtained item advances any active quest, whether pinned or not.
 - Stores pinned quest keys in MMAPI's per-save sidecar; it does not alter the vanilla save.
 - Supports mouse, keyboard, and controller navigation through the vanilla quest-detail pilot.
 - Includes English and Spanish interface text.
@@ -37,18 +37,18 @@ Copy only the [`quest_pins`](quest_pins) directory into the game's `mods` direct
 
 ### Configuration
 
-Open **Journal → Settings → Quest Pins** to choose a small, medium, or large tracker and to enable or disable item sounds and notifications. Changes are saved immediately.
+Open **Journal → Settings → Quest Pins** to choose among five tracker sizes (including a compact 88-pixel layout), place it on the left or right, select whether item alerts cover all active quests or pinned quests only, and enable or disable sounds and notifications. All active quests are monitored by default, and changes are saved immediately.
 
 ## Español
 
 ### Funciones
 
 - Añade un botón **Fijar misión / Desfijar misión** a los detalles de cada misión activa.
-- Mantiene hasta tres misiones visibles en un panel compacto en el lateral derecho del HUD.
-- Coloca el panel justo debajo del indicador vanilla de dinero y esencias.
+- Mantiene hasta tres misiones visibles en un panel compacto en cualquiera de los laterales del HUD.
+- Permite colocar el panel en cualquier lateral y sigue dinámicamente el HUD vanilla visible sobre él: dinero y esencias a la derecha; salud, energía, maná y efectos de estado a la izquierda.
 - Mantiene los títulos largos en una sola línea y los acorta con puntos suspensivos cuando es necesario.
 - Muestra el objetivo actual y el progreso real del inventario para requisitos de objetos.
-- Reproduce un sonido sutil del juego y muestra una notificación cuando un objeto recién obtenido ayuda a una misión fijada.
+- Reproduce un sonido sutil del juego y muestra una notificación cuando un objeto recién obtenido ayuda a cualquier misión activa, esté fijada o no.
 - Guarda las misiones fijadas por partida mediante el archivo auxiliar de MMAPI; no modifica el guardado original.
 - Funciona con ratón, teclado y mando mediante la navegación vanilla del Diario.
 - Incluye textos en inglés y español.
@@ -77,11 +77,11 @@ Copia únicamente la carpeta [`quest_pins`](quest_pins) dentro de `mods`, aplica
 1. Abre **Diario → Misiones**.
 2. Selecciona una misión activa.
 3. Pulsa **Fijar misión** bajo sus objetivos.
-4. Cierra el Diario: el objetivo queda visible en el lateral derecho.
-5. Al obtener un objeto que aún falta para esa misión, aparece el aviso y suena una confirmación breve.
+4. Cierra el Diario: el objetivo queda visible en el lateral elegido.
+5. Al obtener un objeto que aún falta para cualquier misión activa, aparece el aviso y suena una confirmación breve; no es necesario fijarla.
 
 Las misiones completadas se eliminan automáticamente del panel. El aviso de objetos se limita a requisitos estructurados `has_item`; no intenta deducir objetivos leyendo texto traducido.
 
 ### Configuración
 
-Abre **Diario → Ajustes → Quest Pins** para elegir un panel pequeño, mediano o grande y activar o desactivar el sonido y las notificaciones de objetos. Los cambios se guardan inmediatamente.
+Abre **Diario → Ajustes → Quest Pins** para elegir entre cinco tamaños —incluido un modo compacto de 88 píxeles—, colocar el panel a la izquierda o a la derecha, decidir si los avisos cubren todas las misiones activas o solo las fijadas, y activar o desactivar el sonido y las notificaciones. De forma predeterminada se vigilan todas las misiones activas. Los cambios se guardan inmediatamente.

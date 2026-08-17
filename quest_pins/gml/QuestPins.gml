@@ -1,14 +1,14 @@
 // Quest Pins
 // Fields of Mistria 1.0.3 / MOMI + MMAPI 0.15.5
 
-#macro QUEST_PINS_VERSION "0.1.5"
+#macro QUEST_PINS_VERSION "0.1.6"
 #macro QUEST_PINS_CONFIG_VERSION 2
 #macro QUEST_PINS_SAVE_VERSION 1
 #macro QP_TRACKER_X -6
 #macro QP_TRACKER_FALLBACK_Y 69
 #macro QP_TRACKER_MARGIN_TOP 4
 #macro QP_TRACKER_WIDTH_DEFAULT 160
-#macro QP_TRACKER_WIDTH_MIN 120
+#macro QP_TRACKER_WIDTH_MIN 88
 #macro QP_TRACKER_WIDTH_MAX 240
 #macro QP_CARD_GAP 4
 #macro QP_PIN_ELEMENT_HEIGHT 28
@@ -26,6 +26,7 @@ function __quest_pins_runtime() {
             tracker_toolbar: undefined,
             tracker_info_hud: undefined,
             tracker_signature: "",
+            alert_signature: "",
             tracker_dirty: true,
             item_counts: array_create(ItemId.LEN, -1),
             inventory_baselined: false,
@@ -51,8 +52,14 @@ function quest_pins_config() {
             QP_TRACKER_WIDTH_MIN,
             QP_TRACKER_WIDTH_MAX
         )),
+        tracker_on_left: mmapi_config_bool(_source, "tracker_on_left", false),
         play_sound: mmapi_config_bool(_source, "play_sound", true),
         show_notifications: mmapi_config_bool(_source, "show_notifications", true),
+        notify_all_active_quests: mmapi_config_bool(
+            _source,
+            "notify_all_active_quests",
+            true
+        ),
         debug_logging: mmapi_config_bool(_source, "debug_logging", false),
     };
     mmapi_config_write("quest_pins", QUEST_PINS_CONFIG_VERSION, _rt.config);
@@ -120,6 +127,7 @@ function quest_pins_save_apply(_data) {
     _rt.item_counts = array_create(ItemId.LEN, -1);
     _rt.inventory_baselined = false;
     _rt.tracker_signature = "";
+    _rt.alert_signature = "";
     _rt.tracker_dirty = true;
 }
 
@@ -146,6 +154,12 @@ function quest_pins_tick() {
         _rt.tracker_dirty = true;
     }
 
+    var _alert_signature = quest_pins_alert_signature();
+    if (_alert_signature != _rt.alert_signature) {
+        _rt.alert_signature = _alert_signature;
+        quest_pins_reset_alert_baseline();
+    }
+
     var _toolbar = ANCHOR.get_menu(Menu.Toolbar);
     if (_toolbar != _rt.tracker_toolbar) {
         _rt.tracker_toolbar = _toolbar;
@@ -157,6 +171,8 @@ function quest_pins_tick() {
         _rt.tracker_info_hud = _info_hud;
         _rt.tracker_dirty = true;
     }
+
+    quest_pins_update_tracker_position();
 
     if (!_rt.inventory_baselined) {
         quest_pins_sync_inventory(false);
@@ -184,8 +200,14 @@ function quest_pins_on_menu_opened(_ctx) {
 
 function quest_pins_tracker_size_id() {
     var _width = quest_pins_config().tracker_width;
-    if (_width <= 144) {
+    if (_width <= 100) {
+        return "compact";
+    }
+    if (_width <= 136) {
         return "small";
+    }
+    if (_width >= 224) {
+        return "extra_large";
     }
     if (_width >= 184) {
         return "large";
@@ -195,14 +217,16 @@ function quest_pins_tracker_size_id() {
 
 function quest_pins_tracker_size_width(_size_id) {
     switch (_size_id) {
-        case "small": return 128;
+        case "compact": return 88;
+        case "small": return 112;
         case "large": return 208;
+        case "extra_large": return 240;
         default: return 160;
     }
 }
 
 function quest_pins_tracker_size_display(_size_id) {
-    return local_get("mods/quest_pins/ui/size_" + _size_id);
+    return quest_pins_localized_value("mods/quest_pins/ui/size_" + _size_id);
 }
 
 function quest_pins_tracker_size_select(_size_id) {
@@ -214,8 +238,8 @@ function quest_pins_tracker_size_select(_size_id) {
         && _menu[$ "__quest_pins_size_button"] != undefined
         && !_menu[$ "__quest_pins_size_button"].freed)
     {
-        _menu[$ "__quest_pins_size_button"].text_label.set_text(
-            quest_pins_tracker_size_display(_size_id)
+        _menu[$ "__quest_pins_size_button"].text_label.set_key(
+            "mods/quest_pins/ui/size_" + _size_id
         );
     }
 }
@@ -227,7 +251,7 @@ function quest_pins_open_size_popup() {
     }
     create_options_popup(
         "mods/quest_pins/ui/tracker_size",
-        List("small", "medium", "large"),
+        List("compact", "small", "medium", "large", "extra_large"),
         quest_pins_tracker_size_display,
         quest_pins_tracker_size_select,
         _menu.new_pilot()
@@ -252,6 +276,94 @@ function quest_pins_notifications_toggle(_key) {
     quest_pins_config_save();
 }
 
+function quest_pins_alert_scope_id() {
+    return quest_pins_config().notify_all_active_quests ? "all_active" : "pinned_only";
+}
+
+function quest_pins_alert_scope_display(_scope_id) {
+    return quest_pins_localized_value("mods/quest_pins/ui/scope_" + _scope_id);
+}
+
+function quest_pins_tracker_side_id() {
+    return quest_pins_config().tracker_on_left ? "left" : "right";
+}
+
+function quest_pins_tracker_side_display(_side_id) {
+    return quest_pins_localized_value("mods/quest_pins/ui/side_" + _side_id);
+}
+
+function quest_pins_localized_value(_key) {
+    // Added GML does not reliably resolve injected keys through a direct
+    // local_get/mmapi_local_get call. Vanilla Node.set_key does, so use a
+    // short-lived text node for option values that need an immediate string.
+    var _node = ANCHOR.text(ANCHOR.screen_canvas).set_key(_key);
+    var _value = _node.get_text();
+    ANCHOR.free_node(_node);
+    return _value;
+}
+
+function quest_pins_tracker_side_select(_side_id) {
+    quest_pins_config().tracker_on_left = (_side_id == "left");
+    quest_pins_config_save();
+
+    var _menu = ANCHOR.get_menu(Menu.Settings);
+    if (_menu != undefined
+        && _menu[$ "__quest_pins_side_button"] != undefined
+        && !_menu[$ "__quest_pins_side_button"].freed)
+    {
+        _menu[$ "__quest_pins_side_button"].text_label.set_key(
+            "mods/quest_pins/ui/side_" + _side_id
+        );
+    }
+}
+
+function quest_pins_open_tracker_side_popup() {
+    var _menu = ANCHOR.get_menu(Menu.Settings);
+    if (_menu == undefined) {
+        return;
+    }
+    create_options_popup(
+        "mods/quest_pins/ui/tracker_side",
+        List("left", "right"),
+        quest_pins_tracker_side_display,
+        quest_pins_tracker_side_select,
+        _menu.new_pilot()
+    );
+}
+
+function quest_pins_alert_scope_select(_scope_id) {
+    quest_pins_config().notify_all_active_quests = (_scope_id == "all_active");
+    quest_pins_config_save();
+
+    var _rt = __quest_pins_runtime();
+    _rt.alert_signature = quest_pins_alert_signature();
+    quest_pins_reset_alert_baseline();
+
+    var _menu = ANCHOR.get_menu(Menu.Settings);
+    if (_menu != undefined
+        && _menu[$ "__quest_pins_scope_button"] != undefined
+        && !_menu[$ "__quest_pins_scope_button"].freed)
+    {
+        _menu[$ "__quest_pins_scope_button"].text_label.set_key(
+            "mods/quest_pins/ui/scope_" + _scope_id
+        );
+    }
+}
+
+function quest_pins_open_alert_scope_popup() {
+    var _menu = ANCHOR.get_menu(Menu.Settings);
+    if (_menu == undefined) {
+        return;
+    }
+    create_options_popup(
+        "mods/quest_pins/ui/item_alert_scope",
+        List("all_active", "pinned_only"),
+        quest_pins_alert_scope_display,
+        quest_pins_alert_scope_select,
+        _menu.new_pilot()
+    );
+}
+
 function quest_pins_set_setting_title(_button, _key) {
     var _siblings = _button.parent.children;
     for (var _i = 0; _i < array_length(_siblings); _i++) {
@@ -268,15 +380,48 @@ function quest_pins_open_settings() {
         return;
     }
 
+    var _help = _menu.element(
+        "mods/quest_pins/ui/settings_help",
+        44,
+        false
+    );
+    _help.text_label
+        .set_align(Align.LeftIn, Align.TopIn)
+        .set_xy(7, 4)
+        .set_max_width(210);
+
     var _size_button = _menu.button("quest_pins_tracker_size")
         .add_text_label(
-            quest_pins_tracker_size_display(quest_pins_tracker_size_id()),
+            "mods/quest_pins/ui/size_" + quest_pins_tracker_size_id(),
             COMMON_LUT,
             CommonLutIndex.Dark
         )
         .set_tap_callback(quest_pins_open_size_popup);
     quest_pins_set_setting_title(_size_button, "mods/quest_pins/ui/tracker_size");
     _menu[$ "__quest_pins_size_button"] = _size_button;
+
+    var _side_button = _menu.button("quest_pins_tracker_side")
+        .add_text_label(
+            "mods/quest_pins/ui/side_" + quest_pins_tracker_side_id(),
+            COMMON_LUT,
+            CommonLutIndex.Dark
+        )
+        .set_tap_callback(quest_pins_open_tracker_side_popup);
+    quest_pins_set_setting_title(_side_button, "mods/quest_pins/ui/tracker_side");
+    _menu[$ "__quest_pins_side_button"] = _side_button;
+
+    var _scope_button = _menu.button("quest_pins_alert_scope")
+        .add_text_label(
+            "mods/quest_pins/ui/scope_" + quest_pins_alert_scope_id(),
+            COMMON_LUT,
+            CommonLutIndex.Dark
+        )
+        .set_tap_callback(quest_pins_open_alert_scope_popup);
+    quest_pins_set_setting_title(_scope_button, "mods/quest_pins/ui/item_alert_scope");
+    _scope_button.text_label
+        .set_max_width(78)
+        .prevent_spillover();
+    _menu[$ "__quest_pins_scope_button"] = _scope_button;
 
     var _sound = _menu.checkbox(
         "quest_pins_sound",
@@ -341,11 +486,12 @@ function quest_pins_toggle(_quest_key) {
         quest_pins_debug("Pinned quest=" + _quest_key);
     }
 
-    _rt.item_counts = array_create(ItemId.LEN, -1);
-    _rt.inventory_baselined = false;
     _rt.tracker_signature = "";
     _rt.tracker_dirty = true;
-    quest_pins_sync_inventory(false);
+    if (!quest_pins_config().notify_all_active_quests) {
+        _rt.alert_signature = quest_pins_alert_signature();
+        quest_pins_reset_alert_baseline();
+    }
     return true;
 }
 
@@ -374,11 +520,48 @@ function quest_pins_tracker_signature() {
     return _signature;
 }
 
+function quest_pins_alert_quest_keys() {
+    if (quest_pins_config().notify_all_active_quests) {
+        return QUEST_LOG.active.keys();
+    }
+
+    var _keys = [];
+    var _pinned = __quest_pins_runtime().pinned_quests;
+    for (var _i = 0; _i < array_length(_pinned); _i++) {
+        array_push(_keys, _pinned[_i]);
+    }
+    return _keys;
+}
+
+function quest_pins_alert_signature() {
+    if (QUEST_LOG == undefined) {
+        return "";
+    }
+
+    var _signature = quest_pins_config().notify_all_active_quests ? "all:" : "pinned:";
+    var _keys = quest_pins_alert_quest_keys();
+    for (var _i = 0; _i < array_length(_keys); _i++) {
+        var _key = _keys[_i];
+        var _active = QUEST_LOG.active.get(_key);
+        if (_active != undefined) {
+            _signature += _key + ":" + string(_active.current_stage) + ";";
+        }
+    }
+    return _signature;
+}
+
+function quest_pins_reset_alert_baseline() {
+    var _rt = __quest_pins_runtime();
+    _rt.item_counts = array_create(ItemId.LEN, -1);
+    _rt.inventory_baselined = false;
+    quest_pins_sync_inventory(false);
+}
+
 function quest_pins_needed_items() {
     var _needed_items = [];
-    var _pinned = __quest_pins_runtime().pinned_quests;
-    for (var _p = 0; _p < array_length(_pinned); _p++) {
-        var _quest_key = _pinned[_p];
+    var _quest_keys = quest_pins_alert_quest_keys();
+    for (var _p = 0; _p < array_length(_quest_keys); _p++) {
+        var _quest_key = _quest_keys[_p];
         var _active = QUEST_LOG.active.get(_quest_key);
         if (_active == undefined
             || _active.current_stage < 0
@@ -417,7 +600,7 @@ function quest_pins_sync_inventory(_notify) {
     var _needed_items = quest_pins_needed_items();
 
     // Resolve each relevant item count once. This keeps the same before/after
-    // baseline available when one acquisition advances multiple pinned quests.
+    // baseline available when one acquisition advances multiple active quests.
     for (var _i = 0; _i < array_length(_needed_items); _i++) {
         var _entry = _needed_items[_i];
         var _item_id = _entry.item_id;
@@ -485,6 +668,53 @@ function quest_pins_free_tracker() {
     _rt.tracker_root = undefined;
 }
 
+function quest_pins_tracker_dynamic_y() {
+    if (!quest_pins_config().tracker_on_left) {
+        var _info_hud = ANCHOR.get_menu(Menu.InfoHud);
+        if (_info_hud != undefined
+            && _info_hud.bottom_backplate != undefined
+            && !_info_hud.bottom_backplate.freed)
+        {
+            return _info_hud.bottom_backplate.get_y()
+                + _info_hud.bottom_backplate.get_height()
+                + QP_TRACKER_MARGIN_TOP;
+        }
+        return QP_TRACKER_FALLBACK_Y;
+    }
+
+    var _vitals = ANCHOR.get_menu(Menu.Vitals);
+    if (_vitals == undefined
+        || _vitals.root == undefined
+        || _vitals.root.freed
+        || !is_array(_vitals.occupied_space))
+    {
+        return QP_TRACKER_FALLBACK_Y;
+    }
+
+    var _bottom = _vitals.root.get_y();
+    for (var _i = 0; _i < array_length(_vitals.occupied_space); _i++) {
+        _bottom += _vitals.occupied_space[_i];
+        if (_i < array_length(_vitals.occupied_space) - 1) {
+            _bottom += VITAL_ELEMENT_SPACING;
+        }
+    }
+    return _bottom + QP_TRACKER_MARGIN_TOP;
+}
+
+function quest_pins_update_tracker_position() {
+    var _root = __quest_pins_runtime().tracker_root;
+    if (_root == undefined || _root.freed) {
+        return;
+    }
+
+    if (quest_pins_config().tracker_on_left) {
+        _root.set_align(Align.LeftIn, Align.TopIn).set_x(3);
+    } else {
+        _root.set_align(Align.RightIn, Align.TopIn).set_x(QP_TRACKER_X);
+    }
+    _root.set_y(quest_pins_tracker_dynamic_y());
+}
+
 function quest_pins_rebuild_tracker() {
     var _rt = __quest_pins_runtime();
     quest_pins_free_tracker();
@@ -499,21 +729,16 @@ function quest_pins_rebuild_tracker() {
     }
 
     var _tracker_width = quest_pins_config().tracker_width;
-    var _tracker_y = QP_TRACKER_FALLBACK_Y;
-    var _info_hud = ANCHOR.get_menu(Menu.InfoHud);
-    if (_info_hud != undefined
-        && _info_hud.bottom_backplate != undefined
-        && !_info_hud.bottom_backplate.freed)
-    {
-        _tracker_y = _info_hud.bottom_backplate.get_y()
-            + _info_hud.bottom_backplate.get_height()
-            + QP_TRACKER_MARGIN_TOP;
-    }
+    var _tracker_y = quest_pins_tracker_dynamic_y();
+    var _tracker_align = quest_pins_config().tracker_on_left
+        ? Align.LeftIn
+        : Align.RightIn;
+    var _tracker_x = quest_pins_config().tracker_on_left ? 3 : QP_TRACKER_X;
 
     var _root = ANCHOR.positional(_toolbar.canvas)
         .set_size(_tracker_width, 1)
-        .set_align(Align.RightIn, Align.TopIn)
-        .set_xy(QP_TRACKER_X, _tracker_y);
+        .set_align(_tracker_align, Align.TopIn)
+        .set_xy(_tracker_x, _tracker_y);
     _rt.tracker_root = _root;
 
     var _yy = 0;
@@ -570,7 +795,7 @@ function quest_pins_rebuild_tracker() {
                 var _nodes = render_quest_requirement(
                     _listing,
                     _row,
-                    max(58, _tracker_width - 62)
+                    max(24, _tracker_width - 62)
                 );
                 var _row_height = max(18, _nodes.name.measure().y + 5);
                 _row.set_height(_row_height);

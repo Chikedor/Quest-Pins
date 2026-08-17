@@ -31,11 +31,14 @@ The contracts above were rechecked for Fields of Mistria 1.0.3. `Inventory.gml`,
 - Pinned keys live in MMAPI's per-save JSON sidecar, keeping vanilla save data untouched.
 - The tracker is a child of the vanilla Toolbar canvas and uses vanilla nine-slice boxes, fonts, LUTs, quest icons, and requirement renderers.
 - Its top coordinate is derived from `InfoHudMenu.bottom_backplate` (`y + height + 4`) rather than a guessed screen coordinate. This keeps it below both gold and essence, including the vanilla 24-to-15-pixel height change when essence is unavailable.
-- `tracker_width` is configurable from 120 to 240 pixels. Fonts and icons remain at native pixel scale; available wrapping and requirement-row width adapt to the configured card width.
-- Version 0.1.4 exposes three safe width presets (128, 160, and 208 pixels) inside a dedicated vanilla Settings category. It reuses `SettingsMenu.create_category`, `button`, `checkbox`, and `create_options_popup`, so mouse, keyboard, and controller behavior stays native while values persist through MMAPI config.
+- `tracker_width` is configurable from 88 to 240 pixels. Version 0.1.6 exposes five presets (88, 112, 160, 208, and 240 pixels); objective and requirement wrapping adapt while fonts and icons remain at native pixel scale.
+- The vanilla-style Settings category reuses `SettingsMenu.create_category`, `button`, `checkbox`, `element`, and `create_options_popup`, so mouse, keyboard, and controller behavior stays native while values persist through MMAPI config.
+- Direct `local_get()` and `mmapi_local_get()` calls from the added mod GML file returned the native `MISSING` sentinel for dynamically assembled mod keys, although the same exact keys were present in the final translation TOML. A short-lived `Node.set_key()` helper resolves popup values after the menu exists, but resolving a temporary node during the category's initial construction is still too early. Persistent setting-button labels therefore receive their dynamic keys directly through `set_key()`; popup formatters use the short-lived node only after construction.
+- The tracker can align left or right. Its position is recomputed every tick from live vanilla layout state: `InfoHudMenu.bottom_backplate` on the right, or `VitalsMenu.root` plus its animated `occupied_space` array on the left. It therefore follows essence availability and the visibility of health, stamina, mana, and status effects without user offsets.
 - The tracker uses the same right inset as `InfoHudMenu.bottom_backplate` (`-6`). Header text disables line wrapping and is width-truncated with an ellipsis so it cannot escape the 21-pixel header.
-- Acquisition detection compares only item ids required by pinned current stages, and only on Toolbar inventory refreshes. The initial and post-pin snapshots establish a baseline and never generate retroactive alerts.
-- When one acquisition helps multiple pinned quests, each affected quest may receive its own toast, while the sound plays once for that refresh.
+- Acquisition detection compares item ids required by the current stages of every active quest by default, and only on Toolbar inventory refreshes. An in-game setting can limit this scope to pinned quests.
+- Alert scope has its own signature, separate from the tracker signature. Loading a save, accepting or completing a quest, advancing a stage, changing alert scope, or changing the pinned set while using pinned-only scope rebuilds the inventory baseline without generating retroactive alerts.
+- When one acquisition helps multiple monitored quests, each affected quest may receive its own toast, while the sound plays once for that refresh.
 
 ## Rejected approaches
 
@@ -50,10 +53,10 @@ The official MOMI 0.15.5 CLI was run against the installable directory and the p
 ModsOfMistriaInstaller-cli.exe --lint .\quest_pins C:\path\to\assets.bak.zip --strict-lints --compile-check require
 ```
 
-Result:
+Latest result for version 0.1.6:
 
 ```text
-lint chikedor.quest_pins v0.1.5
+lint chikedor.quest_pins v0.1.6
   gml: 1 file(s) installing under scripts/chikedor_quest_pins/
   RESULT: OK - the apply would install this mod
 ```
@@ -71,3 +74,8 @@ Validated in game on 2026-08-12 against Fields of Mistria 1.0.2 and MOMI/MMAPI 0
 - The in-game Quest Pins settings category and tracker-size presets work.
 
 The repository screenshots under `docs/images/` capture the verified pin control and three-card HUD layout.
+
+Validated in game on 2026-08-17 for Quest Pins 0.1.6:
+
+- The expanded Settings category renders in Spanish without `MISSING` values after persistent option labels were changed to receive localization keys through `Node.set_key()`.
+- The size, panel-side, and item-alert-scope selectors open correctly, and the side choices are presented in the natural visual order: left on the left, right on the right.
