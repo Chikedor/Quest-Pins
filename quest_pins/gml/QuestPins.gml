@@ -1,15 +1,15 @@
 // Quest Pins
 // Fields of Mistria 1.0.3 / MOMI + MMAPI 0.15.5
 
-#macro QUEST_PINS_VERSION "0.1.6"
+#macro QUEST_PINS_VERSION "0.1.7"
 #macro QUEST_PINS_CONFIG_VERSION 2
 #macro QUEST_PINS_SAVE_VERSION 1
 #macro QP_TRACKER_X -6
 #macro QP_TRACKER_FALLBACK_Y 69
 #macro QP_TRACKER_MARGIN_TOP 4
 #macro QP_TRACKER_WIDTH_DEFAULT 160
-#macro QP_TRACKER_WIDTH_MIN 88
-#macro QP_TRACKER_WIDTH_MAX 240
+#macro QP_TRACKER_WIDTH_MIN 112
+#macro QP_TRACKER_WIDTH_MAX 208
 #macro QP_CARD_GAP 4
 #macro QP_PIN_ELEMENT_HEIGHT 28
 #macro QP_PIN_BUTTON_WIDTH 116
@@ -91,6 +91,7 @@ function quest_pins_register() {
     _rt.registered = true;
 
     mmapi_on("ui.menu_opened", quest_pins_on_menu_opened);
+    mmapi_on("ui.menu_closed", quest_pins_on_menu_closed);
     mmapi_on("ui.menu_refreshed", quest_pins_on_menu_refreshed);
     mmapi_modsave_register("quest_pins", quest_pins_save_collect, quest_pins_save_apply);
     mmapi_register(quest_pins_tick);
@@ -198,18 +199,24 @@ function quest_pins_on_menu_opened(_ctx) {
     }
 }
 
+function quest_pins_on_menu_closed(_ctx) {
+    if (quest_pins_config().enabled && _ctx.kind == Menu.Storage) {
+        __quest_pins_runtime().tracker_dirty = true;
+    }
+}
+
 function quest_pins_tracker_size_id() {
     var _width = quest_pins_config().tracker_width;
-    if (_width <= 100) {
+    if (_width <= 124) {
         return "compact";
     }
-    if (_width <= 136) {
+    if (_width <= 148) {
         return "small";
     }
-    if (_width >= 224) {
+    if (_width >= 196) {
         return "extra_large";
     }
-    if (_width >= 184) {
+    if (_width >= 172) {
         return "large";
     }
     return "medium";
@@ -217,10 +224,10 @@ function quest_pins_tracker_size_id() {
 
 function quest_pins_tracker_size_width(_size_id) {
     switch (_size_id) {
-        case "compact": return 88;
-        case "small": return 112;
-        case "large": return 208;
-        case "extra_large": return 240;
+        case "compact": return 112;
+        case "small": return 136;
+        case "large": return 184;
+        case "extra_large": return 208;
         default: return 160;
     }
 }
@@ -668,6 +675,55 @@ function quest_pins_free_tracker() {
     _rt.tracker_root = undefined;
 }
 
+function quest_pins_chest_item_quantity(_item_id) {
+    var _count = 0;
+    for (var _i = 0; _i < STORAGE_NODES.count(); _i++) {
+        var _node = STORAGE_NODES.get(_i);
+        var _chest = _node.prototype.interaction_chest;
+        if (_chest != undefined
+            && _chest.belongs_to_ari
+            && !_chest.shipping_bin)
+        {
+            _count += _node.inventory.item_id_quantity(_item_id);
+        }
+    }
+    return _count;
+}
+
+function quest_pins_quest_chest_items(_quest_key) {
+    var _items = [];
+    if (_quest_key == undefined || !QUEST_LOG.active.contains_key(_quest_key)) {
+        return _items;
+    }
+
+    var _active = QUEST_LOG.active.get(_quest_key);
+    if (_active.current_stage < 0
+        || _active.current_stage >= _active.quest.tasks.count())
+    {
+        return _items;
+    }
+
+    var _task = _active.quest.tasks.get(_active.current_stage);
+    var _requirements = _task.requirements[Requirement.HasItem];
+    if (_requirements == undefined) {
+        return _items;
+    }
+
+    for (var _i = 0; _i < array_length(_requirements); _i++) {
+        var _requirement = _requirements[_i];
+        var _inventory_count = ARI.inventory.item_id_quantity(_requirement[0]);
+        var _chest_count = quest_pins_chest_item_quantity(_requirement[0]);
+        if (_inventory_count < _requirement[1] && _chest_count > 0) {
+            array_push(_items, {
+                item_id: _requirement[0],
+                chest_count: _chest_count,
+                needed: _requirement[1],
+            });
+        }
+    }
+    return _items;
+}
+
 function quest_pins_tracker_dynamic_y() {
     if (!quest_pins_config().tracker_on_left) {
         var _info_hud = ANCHOR.get_menu(Menu.InfoHud);
@@ -766,11 +822,22 @@ function quest_pins_rebuild_tracker() {
             .set_align(Align.LeftIn, Align.Middle)
             .set_x(21)
             .allow_line_breaks(false);
-        quest_pins_fit_single_line(_header.text_label, _tracker_width - 27);
+        quest_pins_fit_single_line(_header.text_label, _tracker_width - 43);
         ANCHOR.sprite(_header)
             .set_sprite(spr_ui_journal_magic_pin_icon)
             .set_align(Align.LeftIn, Align.Middle)
             .set_x(4);
+        ANCHOR.nine_slice(_header)
+            .set_size(14, 14)
+            .set_align(Align.RightIn, Align.Middle)
+            .set_x(-3)
+            .set_sprites_from_key("spr_ui_button")
+            .set_tap_sound("SoundEffects/UI/UIExtraPositiveClick")
+            .add_text_label("mods/quest_pins/ui/unpin_short", COMMON_LUT, CommonLutIndex.Dark)
+            .add_hover_outline()
+            .set_tap_callback(function(_key) {
+                quest_pins_toggle(_key);
+            }, [_quest_key]);
 
         var _body = ANCHOR.nine_slice(_card)
             .set_y(20)
@@ -782,25 +849,58 @@ function quest_pins_rebuild_tracker() {
             .set_xy(5, 5)
             .set_max_width(_tracker_width - 10)
             .set_lut(COMMON_LUT);
+        quest_pins_fit_lines(_objective, _tracker_width <= 112 ? 2 : 3);
         var _body_y = 5 + _objective.measure().y + 4;
 
-        var _requirements = _task.requirements[Requirement.HasItem];
-        if (_requirements != undefined) {
-            for (var _r = 0; _r < array_length(_requirements); _r++) {
-                var _requirement = _requirements[_r];
-                var _listing = Listing.Item(_requirement[0], ARI.inventory, _requirement[1]);
-                var _row = ANCHOR.positional(_body)
-                    .set_xy(4, _body_y)
-                    .set_size(_tracker_width - 8, 18);
-                var _nodes = render_quest_requirement(
-                    _listing,
-                    _row,
-                    max(24, _tracker_width - 62)
-                );
-                var _row_height = max(18, _nodes.name.measure().y + 5);
-                _row.set_height(_row_height);
-                _body_y += _row_height;
+        // Use the same structured listing source as the vanilla Journal. This
+        // includes has_item, seal/chest supplies, gold, shipping, and other
+        // requirements that vanilla knows how to present as progress rows.
+        var _listings = gather_listings_from_requirements(
+            _task.requirements,
+            _active.blackboard
+        );
+        for (var _r = 0; _r < _listings.count(); _r++) {
+            var _listing = _listings.get(_r);
+            var _row = ANCHOR.positional(_body)
+                .set_xy(4, _body_y)
+                .set_size(_tracker_width - 8, 18);
+            var _requirement_name_width = max(24, _tracker_width - 62);
+            var _nodes = render_quest_requirement(
+                _listing,
+                _row,
+                _requirement_name_width
+            );
+            quest_pins_fit_single_line(_nodes.name, _requirement_name_width);
+            var _row_height = max(18, _nodes.name.measure().y + 5);
+
+            // Chest stock supplements backpack-based has_item rows only. A
+            // supplied-item listing already points at its actual seal/box
+            // inventory and must keep vanilla's authoritative progress.
+            if (_listing.type == ListingType.Item
+                && _listing.inventory == ARI.inventory)
+            {
+                var _item_id = _listing.item.item_id;
+                var _inventory_count = ARI.inventory.item_id_quantity(_item_id);
+                var _chest_count = quest_pins_chest_item_quantity(_item_id);
+                if (_inventory_count < _listing.amount && _chest_count > 0) {
+                    var _storage_icon = ANCHOR.sprite(_row)
+                        .set_sprite(spr_ui_crafting_icon_storage)
+                        .set_align(Align.LeftIn, Align.TopIn)
+                        .set_xy(2, _row_height + 1);
+                    var _storage_label = ANCHOR.text(_storage_icon)
+                        .set_key("mods/quest_pins/ui/in_chest")
+                        .set_lut(COMMON_LUT, CommonLutIndex.Gray)
+                        .set_align(Align.RightOut, Align.Middle)
+                        .set_x(2);
+                    var _storage_count = ANCHOR.text(_storage_label)
+                        .set_text(": " + string(_chest_count))
+                        .set_lut(COMMON_LUT, CommonLutIndex.Gray)
+                        .set_align(Align.RightOut, Align.Middle);
+                    _row_height += 14;
+                }
             }
+            _row.set_height(_row_height);
+            _body_y += _row_height;
         }
 
         var _body_height = _body_y + 4;
@@ -823,6 +923,22 @@ function quest_pins_fit_single_line(_text_node, _max_width) {
     for (var _length = string_length(_full_text) - 1; _length > 0; _length--) {
         _text_node.set_text(string_copy(_full_text, 1, _length) + _suffix);
         if (_text_node.measure().x <= _max_width) {
+            return;
+        }
+    }
+    _text_node.set_text(_suffix);
+}
+
+function quest_pins_fit_lines(_text_node, _max_lines) {
+    if (_text_node.lines() <= _max_lines) {
+        return;
+    }
+
+    var _full_text = _text_node.get_text();
+    var _suffix = "...";
+    for (var _length = string_length(_full_text) - 1; _length > 0; _length--) {
+        _text_node.set_text(string_copy(_full_text, 1, _length) + _suffix);
+        if (_text_node.lines() <= _max_lines) {
             return;
         }
     }
@@ -855,6 +971,90 @@ function quest_pins_move_control_before_rewards(_scroller, _element) {
     _element.set_y(_target_y);
     array_delete(_children, _element_index, 1);
     array_insert(_children, _rewards_index, _element);
+}
+
+function quest_pins_decorate_quest_list(_menu) {
+    if (_menu.left_scroller == undefined) {
+        return;
+    }
+
+    var _children = _menu.left_scroller.root.children;
+    for (var _i = 0; _i < array_length(_children); _i++) {
+        var _element = _children[_i];
+        var _quest_key = _element.board_get("quest_name");
+        if (_quest_key == undefined
+            || array_length(quest_pins_quest_chest_items(_quest_key)) == 0
+            || _element.board_get("quest_pins_chest_icon") != undefined)
+        {
+            continue;
+        }
+
+        var _icon = ANCHOR.sprite(_element)
+            .set_sprite(spr_ui_crafting_icon_storage)
+            .set_align(Align.RightIn, Align.Middle)
+            .set_x(-20);
+        _element.board_set("quest_pins_chest_icon", _icon);
+    }
+}
+
+function quest_pins_add_chest_details(_menu, _quest_key) {
+    var _scroller = _menu.right_scroller;
+    var _items = quest_pins_quest_chest_items(_quest_key);
+    if (_scroller == undefined || array_length(_items) == 0) {
+        return undefined;
+    }
+
+    var _element = _scroller.new_element(21).set_sprite(spr_nothing_nineslice);
+    var _width = _element.get_width();
+    var _header = ANCHOR.nine_slice(_element)
+        .set_size(_width, 21)
+        .set_sprites_from_key("spr_ui_generic_box_header")
+        .add_text_label("mods/quest_pins/ui/items_in_chests", COMMON_LUT, CommonLutIndex.Header);
+    _header.text_label
+        .set_align(Align.LeftIn, Align.Middle)
+        .set_x(21);
+    ANCHOR.sprite(_header)
+        .set_sprite(spr_ui_crafting_icon_storage)
+        .set_align(Align.LeftIn, Align.Middle)
+        .set_x(4);
+
+    var _body = ANCHOR.nine_slice(_element)
+        .set_y(20)
+        .set_size(_width, 1)
+        .set_sprite(spr_ui_generic_box_main);
+    var _yy = 3;
+    for (var _i = 0; _i < array_length(_items); _i++) {
+        var _item = _items[_i];
+        var _row = ANCHOR.positional(_body)
+            .set_xy(4, _yy)
+            .set_size(_width - 8, 18);
+        var _live_item = new LiveItem(_item.item_id);
+        var _icon = ANCHOR.sprite(_row)
+            .set_sprite(_live_item.get_ui_icon())
+            .set_x(2)
+            .set_align(Align.LeftIn, Align.Middle);
+        var _name = ANCHOR.text(_icon)
+            .set_text(_live_item.get_display_name())
+            .set_x(2)
+            .set_max_width(max(24, _width - 68))
+            .set_align(Align.RightOut, Align.Middle)
+            .set_lut(COMMON_LUT);
+        ANCHOR.text(_row)
+            .set_text(string(_item.chest_count))
+            .set_sprite_font("item_count")
+            .set_align(Align.RightIn, Align.Middle)
+            .set_x(-6);
+        var _row_height = max(18, _name.measure().y + 5);
+        _row.set_height(_row_height);
+        _yy += _row_height;
+    }
+    _body.set_height(_yy + 3);
+    _scroller.add_height_to_element(
+        _element,
+        20 + _body.get_height() - _element.get_height()
+    );
+    quest_pins_move_control_before_rewards(_scroller, _element);
+    return _element;
 }
 
 function quest_pins_button_key(_quest_key) {
@@ -941,6 +1141,7 @@ function quest_pins_decorate_quest_log(_menu) {
         return;
     }
     _menu[$ "__quest_pins_decorated"] = true;
+    quest_pins_decorate_quest_list(_menu);
 
     var _watcher = ANCHOR.positional(_menu.journal.book).set_size(0, 0);
     _watcher.board_set("last_quest", undefined);
@@ -948,7 +1149,14 @@ function quest_pins_decorate_quest_log(_menu) {
     _watcher.board_set("last_pinned", undefined);
     _watcher.board_set("last_count", -1);
     _watcher.board_set("control", undefined);
+    _watcher.board_set("chest_details", undefined);
+    _watcher.board_set("last_left_scroller", _menu.left_scroller);
     _watcher.set_think_callback(function(_node, _quest_menu) {
+        if (_node.board_get("last_left_scroller") != _quest_menu.left_scroller) {
+            _node.board_set("last_left_scroller", _quest_menu.left_scroller);
+            quest_pins_decorate_quest_list(_quest_menu);
+        }
+
         var _quest_key = _quest_menu.active_quest;
         var _scroller = _quest_menu.right_scroller;
         var _is_pinned = quest_pins_is_pinned(_quest_key);
@@ -974,7 +1182,12 @@ function quest_pins_decorate_quest_log(_menu) {
         }
 
         _node.board_set("control", undefined);
+        _node.board_set("chest_details", undefined);
         if (_quest_key != undefined && _scroller != undefined) {
+            _node.board_set(
+                "chest_details",
+                quest_pins_add_chest_details(_quest_menu, _quest_key)
+            );
             _node.board_set("control", quest_pins_add_control(_quest_menu, _quest_key));
         }
     }, [_watcher, _menu]);

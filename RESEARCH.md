@@ -31,14 +31,21 @@ The contracts above were rechecked for Fields of Mistria 1.0.3. `Inventory.gml`,
 - Pinned keys live in MMAPI's per-save JSON sidecar, keeping vanilla save data untouched.
 - The tracker is a child of the vanilla Toolbar canvas and uses vanilla nine-slice boxes, fonts, LUTs, quest icons, and requirement renderers.
 - Its top coordinate is derived from `InfoHudMenu.bottom_backplate` (`y + height + 4`) rather than a guessed screen coordinate. This keeps it below both gold and essence, including the vanilla 24-to-15-pixel height change when essence is unavailable.
-- `tracker_width` is configurable from 88 to 240 pixels. Version 0.1.6 exposes five presets (88, 112, 160, 208, and 240 pixels); objective and requirement wrapping adapt while fonts and icons remain at native pixel scale.
+- `tracker_width` is configurable from 112 to 208 pixels. Version 0.1.7 exposes five evenly spaced widths (112, 136, 160, 184, and 208 pixels). The former 88-pixel layout became taller than 112 pixels because objective wrapping dominated its area, while 240 pixels consumed an excessive portion of the screen at common UI scales.
 - The vanilla-style Settings category reuses `SettingsMenu.create_category`, `button`, `checkbox`, `element`, and `create_options_popup`, so mouse, keyboard, and controller behavior stays native while values persist through MMAPI config.
 - Direct `local_get()` and `mmapi_local_get()` calls from the added mod GML file returned the native `MISSING` sentinel for dynamically assembled mod keys, although the same exact keys were present in the final translation TOML. A short-lived `Node.set_key()` helper resolves popup values after the menu exists, but resolving a temporary node during the category's initial construction is still too early. Persistent setting-button labels therefore receive their dynamic keys directly through `set_key()`; popup formatters use the short-lived node only after construction.
 - The tracker can align left or right. Its position is recomputed every tick from live vanilla layout state: `InfoHudMenu.bottom_backplate` on the right, or `VitalsMenu.root` plus its animated `occupied_space` array on the left. It therefore follows essence availability and the visibility of health, stamina, mana, and status effects without user offsets.
 - The tracker uses the same right inset as `InfoHudMenu.bottom_backplate` (`-6`). Header text disables line wrapping and is width-truncated with an ellipsis so it cannot escape the 21-pixel header.
+- Tracker requirement rows come from vanilla `gather_listings_from_requirements()` and render through `render_quest_requirement()`. This is required for `Requirement.SuppliedItems` missions such as mine seals: their item progress lives in `SEAL_INVENTORIES`, not `ARI.inventory` or `Requirement.HasItem`.
+- After vanilla creates a requirement row, its name node is constrained to one line and truncated with the same measured ellipsis helper as tracker titles. Icons and counters remain untouched, while long localized item names can no longer multiply a card's row height.
+- A tested `fnt_cubic_11` compact-body experiment changed the typeface but did not materially reduce its rendered size, so it was removed. All presets retain the standard localized font. Instead, Compact clamps objectives to two measured lines and all other widths clamp them to three; long requirement names remain single-line. The HUD deliberately trades secondary prose for a predictable footprint while the Journal retains the complete text.
+- Each tracker header reserves its top-right corner for a 14-pixel vanilla-style mouse button. Its callback receives the quest key explicitly and delegates to the existing safe unpin path.
 - Acquisition detection compares item ids required by the current stages of every active quest by default, and only on Toolbar inventory refreshes. An in-game setting can limit this scope to pinned quests.
 - Alert scope has its own signature, separate from the tracker signature. Loading a save, accepting or completing a quest, advancing a stage, changing alert scope, or changing the pinned set while using pinned-only scope rebuilds the inventory baseline without generating retroactive alerts.
 - When one acquisition helps multiple monitored quests, each affected quest may receive its own toast, while the sound plays once for that refresh.
+- `STORAGE_NODES` is the vanilla global registry for furniture nodes carrying inventories. Quest Pins counts a node only when `prototype.interaction_chest` exists, `belongs_to_ari` is true, and `shipping_bin` is false. This includes player-owned chests even when their crafting pull toggle is disabled, while excluding shipping bins, factories, feeders, and non-player storage.
+- Chest quantities supplement the HUD display only; vanilla quest fulfillment continues to use `ARI.inventory`, so the inventory progress remains authoritative. Closing a vanilla Storage menu marks the tracker dirty and refreshes chest counts without polling every chest each frame.
+- Chest discovery is independent from pin state. The Journal quest list decorates every active quest whose current `has_item` stage has missing backpack items available in player-owned chests; the selected quest receives a vanilla-style detail section listing the exact stored items and counts.
 
 ## Rejected approaches
 
@@ -79,3 +86,9 @@ Validated in game on 2026-08-17 for Quest Pins 0.1.6:
 
 - The expanded Settings category renders in Spanish without `MISSING` values after persistent option labels were changed to receive localization keys through `Node.set_key()`.
 - The size, panel-side, and item-alert-scope selectors open correctly, and the side choices are presented in the natural visual order: left on the left, right on the right.
+
+Validated in game on 2026-08-19 for Quest Pins 0.1.7:
+
+- A mine-seal mission using `Requirement.SuppliedItems` renders all four vanilla item rows in its pinned HUD card.
+- The header X unpins a quest directly from the HUD and resolves through localization without displaying `MISSING`.
+- Long requirement names remain on one line, and the revised 112–208 pixel width presets retain the standard game font while keeping narrow cards shorter through measured objective-line limits.
