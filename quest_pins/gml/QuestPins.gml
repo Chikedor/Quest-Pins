@@ -1,7 +1,7 @@
 // Quest Pins
 // Fields of Mistria 1.0.3 / MOMI + MMAPI 0.15.5
 
-#macro QUEST_PINS_VERSION "0.1.7"
+#macro QUEST_PINS_VERSION "0.1.8"
 #macro QUEST_PINS_CONFIG_VERSION 2
 #macro QUEST_PINS_SAVE_VERSION 1
 #macro QP_TRACKER_X -6
@@ -690,6 +690,71 @@ function quest_pins_chest_item_quantity(_item_id) {
     return _count;
 }
 
+function quest_pins_add_item_source_counts(
+    _row,
+    _row_height,
+    _tracker_width,
+    _backpack_count,
+    _chest_count
+) {
+    if (_backpack_count <= 0 && _chest_count <= 0) {
+        return 0;
+    }
+
+    var _sources = ANCHOR.positional(_row)
+        .set_xy(2, _row_height + 1)
+        .set_size(_tracker_width - 12, 14);
+    var _backpack_group = undefined;
+    var _backpack_width = 0;
+    var _chest_group = undefined;
+    var _chest_width = 0;
+
+    if (_backpack_count > 0) {
+        _backpack_group = ANCHOR.positional(_sources).set_size(1, 14);
+        var _backpack_label = ANCHOR.text(_backpack_group)
+            .set_key("mods/quest_pins/ui/in_backpack")
+            .set_lut(COMMON_LUT, CommonLutIndex.Gray)
+            .set_align(Align.LeftIn, Align.Middle);
+        var _backpack_value = ANCHOR.text(_backpack_label)
+            .set_text(": " + string(_backpack_count))
+            .set_lut(COMMON_LUT, CommonLutIndex.Gray)
+            .set_align(Align.RightOut, Align.Middle);
+        _backpack_width = _backpack_label.measure().x + _backpack_value.measure().x;
+        _backpack_group.set_width(_backpack_width);
+    }
+
+    if (_chest_count > 0) {
+        _chest_group = ANCHOR.positional(_sources).set_size(1, 14);
+        var _chest_label = ANCHOR.text(_chest_group)
+            .set_key("mods/quest_pins/ui/in_chest")
+            .set_lut(COMMON_LUT, CommonLutIndex.Gray)
+            .set_align(Align.LeftIn, Align.Middle);
+        var _chest_value = ANCHOR.text(_chest_label)
+            .set_text(": " + string(_chest_count))
+            .set_lut(COMMON_LUT, CommonLutIndex.Gray)
+            .set_align(Align.RightOut, Align.Middle);
+        _chest_width = _chest_label.measure().x + _chest_value.measure().x;
+        _chest_group.set_width(_chest_width);
+    }
+
+    if (_backpack_group != undefined && _chest_group != undefined) {
+        if (_backpack_width + _chest_width + 6 <= _sources.get_width()) {
+            _backpack_group.set_align(Align.LeftIn, Align.TopIn);
+            _chest_group.set_align(Align.RightIn, Align.TopIn);
+            return 15;
+        }
+
+        _backpack_group.set_align(Align.LeftIn, Align.TopIn);
+        _chest_group.set_align(Align.LeftIn, Align.TopIn).set_y(14);
+        _sources.set_height(28);
+        return 29;
+    }
+
+    var _only_group = _backpack_group ?? _chest_group;
+    _only_group.set_align(Align.LeftIn, Align.TopIn);
+    return 15;
+}
+
 function quest_pins_quest_chest_items(_quest_key) {
     var _items = [];
     if (_quest_key == undefined || !QUEST_LOG.active.contains_key(_quest_key)) {
@@ -896,8 +961,21 @@ function quest_pins_rebuild_tracker() {
                         .set_text(": " + string(_chest_count))
                         .set_lut(COMMON_LUT, CommonLutIndex.Gray)
                         .set_align(Align.RightOut, Align.Middle);
-                    _row_height += 14;
+                    _row_height += 15;
                 }
+            } else if (_listing.type == ListingType.Item) {
+                // For seal and turn-in-box objectives, vanilla's main counter
+                // shows only what has actually been supplied. Show useful
+                // stock elsewhere as secondary information without changing
+                // the authoritative quest progress.
+                var _item_id = _listing.item.item_id;
+                _row_height += quest_pins_add_item_source_counts(
+                    _row,
+                    _row_height,
+                    _tracker_width,
+                    ARI.inventory.item_id_quantity(_item_id),
+                    quest_pins_chest_item_quantity(_item_id)
+                );
             }
             _row.set_height(_row_height);
             _body_y += _row_height;

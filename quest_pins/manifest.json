@@ -1,9 +1,9 @@
 {
   "name": "Quest Pins",
   "author": "Chikedor",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Pins active quests to the HUD and alerts when a needed quest item is obtained.",
-  "minInstallerVersion": "0.15.5",
+  "minInstallerVersion": "0.15.6",
   "manifestVersion": 1,
   "requires_hooks": [
     "ui.menu_opened",

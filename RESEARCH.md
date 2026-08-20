@@ -4,8 +4,8 @@ Research date: 2026-08-11–2026-08-16.
 
 ## Supported versions
 
-- Fields of Mistria 1.0.3, Steam build 24742087.
-- MOMI/MMAPI 0.15.5, tag `v0.15.5`, commit `9b90ee213309e7aaca5870ac43272682b6f595ad`.
+- Fields of Mistria 1.0.4, Steam build 24820767.
+- MOMI/MMAPI 0.15.6, tag `v0.15.6`, commit `288d843a57df4ee7c7bab224925fde1ce54d1bf4`.
 
 ## Player-visible objective
 
@@ -25,6 +25,12 @@ Non-goals for 0.1.x: parsing localized objective prose, altering quest progressi
 - `TANGO.name_exists()` and `TANGO.play()` are the supported direct sound path; `SoundEffects/UI/UIExtraPositiveClick` is used by vanilla quest acceptance.
 
 The contracts above were rechecked for Fields of Mistria 1.0.3. `Inventory.gml`, `QuestLog.gml`, `Requirements.gml`, and `InfoHudMenu.gml` are byte-identical to the previously verified pristine sources. Differences in `QuestLogMenu.gml`, `SettingsMenu.gml`, `ToolbarMenu.gml`, and `Node.gml` are limited to the expected MMAPI localization rewrite and UI hook seams. Evidence was read from the pristine 1.0.3 backup, the installed asset, and the official MOMI 0.15.5 source/tag.
+
+### Fields of Mistria 1.0.4 build 24820767
+
+Audited on 2026-08-19 and validated with the official compatibility release on 2026-08-20. Steam replaced the executable and `assets.zip` while leaving `assets.bak.zip` from the preceding build. The restored current archive (SHA-256 `e55ef6bcaa7430008a6fcae7980ef06ca6912bb10431c177807b366a0fc5a450`) contained no Quest Pins or MMAPI paths and exposed the patch's new per-`MonsterId` quest tracking in `Requirements.gml`, `QuestLog.gml`, and `QuestLogMenu.gml`. Quest Pins delegates those rows to vanilla, and its directly used inventory, HUD, settings, and storage sources remained byte-identical.
+
+Official MOMI 0.15.5 failed its global `dungeon_floor_bracket` seam against the changed `enter_dungeon.gml` before compiling Quest Pins. MOMI 0.15.6 (`v0.15.6`, commit `288d843a57df4ee7c7bab224925fde1ce54d1bf4`, CLI SHA-256 `2d97a7754dc14bad3e7220a85d20e5684aac083c88dacf93f8b393d1f89ce3ac`) re-anchors the framework for game 1.0.4. Its strict lint and required compile check pass Quest Pins 0.1.8 against this exact pristine archive.
 
 ## Design decisions
 
@@ -46,6 +52,7 @@ The contracts above were rechecked for Fields of Mistria 1.0.3. `Inventory.gml`,
 - `STORAGE_NODES` is the vanilla global registry for furniture nodes carrying inventories. Quest Pins counts a node only when `prototype.interaction_chest` exists, `belongs_to_ari` is true, and `shipping_bin` is false. This includes player-owned chests even when their crafting pull toggle is disabled, while excluding shipping bins, factories, feeders, and non-player storage.
 - Chest quantities supplement the HUD display only; vanilla quest fulfillment continues to use `ARI.inventory`, so the inventory progress remains authoritative. Closing a vanilla Storage menu marks the tracker dirty and refreshes chest counts without polling every chest each frame.
 - Chest discovery is independent from pin state. The Journal quest list decorates every active quest whose current `has_item` stage has missing backpack items available in player-owned chests; the selected quest receives a vanilla-style detail section listing the exact stored items and counts.
+- A `SuppliedItems` listing retains its target inventory (turn-in box or seal) as the authoritative main counter. Version 0.1.8 adds backpack and player-chest quantities only as secondary labels when either source contains the item. Their localized widths are measured at runtime: both labels share a line only when their combined width plus a six-pixel gap fits, otherwise they stack, so narrow panels cannot overlap them.
 
 ## Rejected approaches
 
@@ -54,21 +61,23 @@ The contracts above were rechecked for Fields of Mistria 1.0.3. `Inventory.gml`,
 
 ## Automated validation
 
-The official MOMI 0.15.5 CLI was run against the installable directory and the pristine game 1.0.3 backup:
+The official MOMI 0.15.6 CLI was run against the installable directory and the pristine game 1.0.4 backup:
 
 ```powershell
 ModsOfMistriaInstaller-cli.exe --lint .\quest_pins C:\path\to\assets.bak.zip --strict-lints --compile-check require
 ```
 
-Latest result for version 0.1.6:
+Latest result for version 0.1.8:
 
 ```text
-lint chikedor.quest_pins v0.1.6
+lint chikedor.quest_pins v0.1.8
   gml: 1 file(s) installing under scripts/chikedor_quest_pins/
   RESULT: OK - the apply would install this mod
 ```
 
 A real MOMI 0.15.5 apply with Find My Mistrian and Quest Pins enabled passed the compile gate (`100` seamed/framework files plus one GML file for each mod) and reported `2 mod(s) installed`, including Quest Pins 0.1.5.
+
+A real MOMI 0.15.6 apply on 2026-08-20 against Fields of Mistria 1.0.4 build 24820767 passed the compile gate (`103` seamed/framework files plus one GML file for each installed mod) and reported `3 mod(s) installed`, including Quest Pins 0.1.8. The final `assets.zip` SHA-256 was `3d0897823962ed3cbe80603d2edc972a9ddef20076fa7f9318259679e36b1e3d`; its `assets/gml/scripts/chikedor_quest_pins/QuestPins.gml` SHA-256 was `6046a1c25760d73c5d47c281835b65ce495b53194e1a28478f2bba1981c7821c`, exactly matching the validated repository source.
 
 ## Manual validation
 
@@ -92,3 +101,9 @@ Validated in game on 2026-08-19 for Quest Pins 0.1.7:
 - A mine-seal mission using `Requirement.SuppliedItems` renders all four vanilla item rows in its pinned HUD card.
 - The header X unpins a quest directly from the HUD and resolves through localization without displaying `MISSING`.
 - Long requirement names remain on one line, and the revised 112–208 pixel width presets retain the standard game font while keeping narrow cards shorter through measured objective-line limits.
+
+Validated in game on 2026-08-20 for Quest Pins 0.1.8 with Fields of Mistria 1.0.4 build 24820767 and MOMI/MMAPI 0.15.6:
+
+- A donation-box objective keeps its main counter tied to deposited progress while independently showing live `Mochila` and `Cofre` quantities for the same required items.
+- Spanish source labels and values share or stack within the measured row width without overlapping the item name or authoritative counter; long item names remain single-line and ellipsized.
+- The captured HUD state under `docs/images/deliverables-backpack-chest.png` records this verified behavior on the supported patch.

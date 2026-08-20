@@ -21,6 +21,7 @@ item_alert_scope = "Quests with item alerts"
 scope_all_active = "All active"
 scope_pinned_only = "Pinned only"
 in_chest = "Chest"
+in_backpack = "Backpack"
 items_in_chests = "Items in chests"
 
 [asset_properties]

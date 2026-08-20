@@ -22,4 +22,5 @@
 "mods/quest_pins/ui/scope_all_active" = "Todas activas"
 "mods/quest_pins/ui/scope_pinned_only" = "Solo fijadas"
 "mods/quest_pins/ui/in_chest" = "Cofre"
+"mods/quest_pins/ui/in_backpack" = "Mochila"
 "mods/quest_pins/ui/items_in_chests" = "Objetos en cofres"
