@@ -16,7 +16,7 @@ Pin active quests to a compact HUD panel and get an in-game sound plus notificat
 - Adds a small mouse-clickable **X** to each HUD card so it can be unpinned without reopening the Journal.
 - Shows a vanilla storage icon and the amount kept in player-owned chests when the required item is missing from the backpack.
 - For seal and donation-box objectives, keeps the main counter tied to items actually supplied and adds measured Backpack/Chest stock labels below it when relevant.
-- For backpack-item objectives, marks active quests with missing required items stored in chests and shows the exact stored items and quantities in their Journal details, without requiring the quest to be pinned.
+- For backpack-item objectives, marks active quests with a backpack and/or chest icon when useful required items exist in either source. Chest contents are also listed with exact quantities in the quest details, without requiring the quest to be pinned.
 - Plays a subtle vanilla UI sound and shows a localized notification when a newly obtained item advances any active quest, whether pinned or not.
 - Stores pinned quest keys in MMAPI's per-save sidecar; it does not alter the vanilla save.
 - Supports mouse, keyboard, and controller navigation through the vanilla quest-detail pilot.
@@ -58,6 +58,8 @@ Pinning and item alerts are independent. By default, obtaining a missing backpac
 
 Item alerts and the Journal chest marker use structured vanilla `has_item` requirements. They do not guess requirements from translated objective text and do not alert for currency, shipping, monster, delivery-box, seal, or other non-backpack progress. Loading a save or changing quest stages establishes a fresh inventory baseline instead of generating retroactive alerts.
 
+The quest-list icons indicate where useful required items are currently available; they are not completion badges. A backpack icon means at least one required item is in your inventory. A chest icon means stored items can still help with a requirement not yet satisfied by the backpack. Both icons can appear together for mixed sources.
+
 Chest quantities include player-owned chests registered by the game, regardless of their crafting-pull toggle. Shipping bins, machines, factories, feeders, and storage that does not belong to the player are excluded. Quest Pins only displays these quantities: it never moves items, counts them as delivered, or changes vanilla quest progress. Completed or otherwise inactive quests are removed from the HUD automatically.
 
 The compact HUD intentionally shortens long titles, objectives, and item names. The complete text and normal quest controls remain available in the vanilla Journal.
@@ -80,7 +82,7 @@ Open **Journal → Settings → Quest Pins** to choose among five balanced panel
 - Añade una pequeña **X** pulsable con el ratón a cada tarjeta del HUD para desfijarla sin volver a abrir el Diario.
 - Si falta un objeto en la mochila pero está guardado, muestra el icono vanilla de almacenamiento y la cantidad disponible en los cofres del jugador.
 - En objetivos de sellos y cajas de donaciones, mantiene el contador principal ligado a lo realmente entregado y añade debajo las cantidades disponibles en Mochila/Cofre cuando corresponda.
-- En objetivos de objetos de mochila, marca las misiones activas que tienen requisitos pendientes guardados en cofres y muestra los objetos y cantidades en sus detalles del Diario, aunque la misión no esté fijada.
+- En objetivos de objetos de mochila, marca las misiones activas con un icono de mochila y/o cofre cuando hay objetos necesarios útiles en cualquiera de las dos fuentes. También muestra el contenido de los cofres con cantidades exactas en los detalles, aunque la misión no esté fijada.
 - Reproduce un sonido sutil del juego y muestra una notificación cuando un objeto recién obtenido ayuda a cualquier misión activa, esté fijada o no.
 - Guarda las misiones fijadas por partida mediante el archivo auxiliar de MMAPI; no modifica el guardado original.
 - Funciona con ratón, teclado y mando mediante la navegación vanilla del Diario.
@@ -122,6 +124,8 @@ Copia únicamente la carpeta [`quest_pins`](quest_pins) dentro de `mods`, aplica
 Fijar misiones y recibir avisos son funciones independientes. De forma predeterminada, conseguir un objeto pendiente en la mochila puede avisarte para **cualquier misión activa**, aunque no esté fijada. Los ajustes permiten limitar los avisos a las misiones fijadas y desactivar por separado el sonido y las notificaciones visuales. Si un mismo objeto ayuda a varias misiones vigiladas, cada misión puede mostrar su propio aviso, pero el sonido se reproduce una sola vez.
 
 Los avisos y el marcador de cofres del Diario se limitan a requisitos estructurados `has_item`. No intentan deducir requisitos leyendo el texto traducido ni avisan de dinero, envíos, monstruos, cajas de donaciones, sellos u otros progresos que no dependan de la mochila. Al cargar una partida o cambiar de etapa de misión se crea una nueva referencia del inventario, evitando avisos retroactivos.
+
+Los iconos de la lista indican dónde hay objetos necesarios que pueden ayudar; no significan que la misión esté completada. La mochila indica que tienes al menos un objeto requerido en el inventario. El cofre indica que hay objetos guardados útiles para un requisito que la mochila todavía no cubre. Ambos pueden aparecer a la vez cuando el material está repartido.
 
 Las cantidades de cofres incluyen los cofres del jugador registrados por el juego, aunque tengan desactivado el uso de materiales para fabricar. Se excluyen el buzón de envíos, máquinas, fábricas, comederos y almacenes que no pertenecen al jugador. Quest Pins solo muestra esas cantidades: nunca mueve los objetos, los cuenta como entregados ni modifica el progreso vanilla. Las misiones completadas o que dejan de estar activas se eliminan automáticamente del panel.
 

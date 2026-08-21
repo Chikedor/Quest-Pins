@@ -52,6 +52,8 @@ Official MOMI 0.15.5 failed its global `dungeon_floor_bracket` seam against the 
 - `STORAGE_NODES` is the vanilla global registry for furniture nodes carrying inventories. Quest Pins counts a node only when `prototype.interaction_chest` exists, `belongs_to_ari` is true, and `shipping_bin` is false. This includes player-owned chests even when their crafting pull toggle is disabled, while excluding shipping bins, factories, feeders, and non-player storage.
 - Chest quantities supplement the HUD display only; vanilla quest fulfillment continues to use `ARI.inventory`, so the inventory progress remains authoritative. Closing a vanilla Storage menu marks the tracker dirty and refreshes chest counts without polling every chest each frame.
 - Chest discovery is independent from pin state. The Journal quest list decorates every active quest whose current `has_item` stage has missing backpack items available in player-owned chests; the selected quest receives a vanilla-style detail section listing the exact stored items and counts.
+- Version 0.1.9 makes the Journal source indicator symmetric: a 14-pixel vanilla inventory-header backpack occupies the first slot left of the vanilla read envelope whenever any current `has_item` requirement has backpack stock. The existing 7-pixel storage icon uses that slot when alone and shifts left only when both sources are relevant. These are availability indicators, not completion badges.
+- Source icons are created idempotently per live quest row and their alpha/position is refreshed on bounded Toolbar inventory events. This avoids a `STORAGE_NODES` scan every frame while still updating an open Journal after backpack changes.
 - A `SuppliedItems` listing retains its target inventory (turn-in box or seal) as the authoritative main counter. Version 0.1.8 adds backpack and player-chest quantities only as secondary labels when either source contains the item. Their localized widths are measured at runtime: both labels share a line only when their combined width plus a six-pixel gap fits, otherwise they stack, so narrow panels cannot overlap them.
 
 ## Rejected approaches
@@ -67,10 +69,10 @@ The official MOMI 0.15.6 CLI was run against the installable directory and the p
 ModsOfMistriaInstaller-cli.exe --lint .\quest_pins C:\path\to\assets.bak.zip --strict-lints --compile-check require
 ```
 
-Latest result for version 0.1.8:
+Latest result for version 0.1.9:
 
 ```text
-lint chikedor.quest_pins v0.1.8
+lint chikedor.quest_pins v0.1.9
   gml: 1 file(s) installing under scripts/chikedor_quest_pins/
   RESULT: OK - the apply would install this mod
 ```
@@ -78,6 +80,8 @@ lint chikedor.quest_pins v0.1.8
 A real MOMI 0.15.5 apply with Find My Mistrian and Quest Pins enabled passed the compile gate (`100` seamed/framework files plus one GML file for each mod) and reported `2 mod(s) installed`, including Quest Pins 0.1.5.
 
 A real MOMI 0.15.6 apply on 2026-08-20 against Fields of Mistria 1.0.4 build 24820767 passed the compile gate (`103` seamed/framework files plus one GML file for each installed mod) and reported `3 mod(s) installed`, including Quest Pins 0.1.8. The final `assets.zip` SHA-256 was `3d0897823962ed3cbe80603d2edc972a9ddef20076fa7f9318259679e36b1e3d`; its `assets/gml/scripts/chikedor_quest_pins/QuestPins.gml` SHA-256 was `6046a1c25760d73c5d47c281835b65ce495b53194e1a28478f2bba1981c7821c`, exactly matching the validated repository source.
+
+A real MOMI 0.15.6 apply on 2026-08-21 against the same supported game build passed the compile gate and installed Quest Pins 0.1.9 alongside the other two enabled mods. The final `assets.zip` SHA-256 was `4574a644286929c7d9768c3e24ef24f926aed7c107324db1cd980a4f8960774a`; its Quest Pins GML SHA-256 was `0bf1c4279e8ad9f6d1d28814c1dcb6a46949194c450b2e199e46cd781e1c0023`, exactly matching both the repository source and installed mod copy.
 
 ## Manual validation
 

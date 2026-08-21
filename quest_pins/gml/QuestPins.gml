@@ -1,7 +1,7 @@
 // Quest Pins
-// Fields of Mistria 1.0.3 / MOMI + MMAPI 0.15.5
+// Fields of Mistria 1.0.4 / MOMI + MMAPI 0.15.6
 
-#macro QUEST_PINS_VERSION "0.1.8"
+#macro QUEST_PINS_VERSION "0.1.9"
 #macro QUEST_PINS_CONFIG_VERSION 2
 #macro QUEST_PINS_SAVE_VERSION 1
 #macro QP_TRACKER_X -6
@@ -469,6 +469,11 @@ function quest_pins_on_menu_refreshed(_ctx) {
 
     quest_pins_sync_inventory(true);
     __quest_pins_runtime().tracker_dirty = true;
+
+    var _quest_menu = ANCHOR.get_menu(Menu.QuestLog);
+    if (_quest_menu != undefined && _quest_menu.context == QuestLogContext.Journal) {
+        quest_pins_decorate_quest_list(_quest_menu);
+    }
 }
 
 function quest_pins_is_pinned(_quest_key) {
@@ -789,6 +794,46 @@ function quest_pins_quest_chest_items(_quest_key) {
     return _items;
 }
 
+function quest_pins_quest_item_sources(_quest_key) {
+    var _sources = {
+        backpack: false,
+        chest: false,
+    };
+    if (_quest_key == undefined || !QUEST_LOG.active.contains_key(_quest_key)) {
+        return _sources;
+    }
+
+    var _active = QUEST_LOG.active.get(_quest_key);
+    if (_active.current_stage < 0
+        || _active.current_stage >= _active.quest.tasks.count())
+    {
+        return _sources;
+    }
+
+    var _task = _active.quest.tasks.get(_active.current_stage);
+    var _requirements = _task.requirements[Requirement.HasItem];
+    if (_requirements == undefined) {
+        return _sources;
+    }
+
+    for (var _i = 0; _i < array_length(_requirements); _i++) {
+        var _requirement = _requirements[_i];
+        var _inventory_count = ARI.inventory.item_id_quantity(_requirement[0]);
+        if (_inventory_count > 0) {
+            _sources.backpack = true;
+        }
+        if (_inventory_count < _requirement[1]
+            && quest_pins_chest_item_quantity(_requirement[0]) > 0)
+        {
+            _sources.chest = true;
+        }
+        if (_sources.backpack && _sources.chest) {
+            break;
+        }
+    }
+    return _sources;
+}
+
 function quest_pins_tracker_dynamic_y() {
     if (!quest_pins_config().tracker_on_left) {
         var _info_hud = ANCHOR.get_menu(Menu.InfoHud);
@@ -1060,18 +1105,45 @@ function quest_pins_decorate_quest_list(_menu) {
     for (var _i = 0; _i < array_length(_children); _i++) {
         var _element = _children[_i];
         var _quest_key = _element.board_get("quest_name");
-        if (_quest_key == undefined
-            || array_length(quest_pins_quest_chest_items(_quest_key)) == 0
-            || _element.board_get("quest_pins_chest_icon") != undefined)
-        {
+        if (_quest_key == undefined) {
             continue;
         }
 
-        var _icon = ANCHOR.sprite(_element)
-            .set_sprite(spr_ui_crafting_icon_storage)
-            .set_align(Align.RightIn, Align.Middle)
-            .set_x(-20);
-        _element.board_set("quest_pins_chest_icon", _icon);
+        var _sources = quest_pins_quest_item_sources(_quest_key);
+        var _has_any_source = _sources.backpack || _sources.chest;
+        var _quest_name_width = _sources.backpack && _sources.chest
+            ? 78
+            : (_has_any_source ? 96 : 111);
+        _element.text_label.set_max_width(_quest_name_width);
+        var _text_height = _element.text_label.measure().y;
+        var _required_height = _text_height > 32 ? _text_height + 6 : 32;
+        if (_required_height > _element.get_height()) {
+            _menu.left_scroller.add_height_to_element(
+                _element,
+                _required_height - _element.get_height()
+            );
+        }
+
+        var _backpack_icon = _element.board_get("quest_pins_backpack_icon");
+        if (_backpack_icon == undefined || _backpack_icon.freed) {
+            _backpack_icon = ANCHOR.sprite(_element)
+                .set_sprite(spr_ui_journal_inventory_header_icon)
+                .set_align(Align.RightIn, Align.Middle)
+                .set_x(-20);
+            _element.board_set("quest_pins_backpack_icon", _backpack_icon);
+        }
+        _backpack_icon.set_alpha(_sources.backpack ? 1 : 0);
+
+        var _chest_icon = _element.board_get("quest_pins_chest_icon");
+        if (_chest_icon == undefined || _chest_icon.freed) {
+            _chest_icon = ANCHOR.sprite(_element)
+                .set_sprite(spr_ui_crafting_icon_storage)
+                .set_align(Align.RightIn, Align.Middle);
+            _element.board_set("quest_pins_chest_icon", _chest_icon);
+        }
+        _chest_icon
+            .set_x(_sources.backpack ? -37 : -20)
+            .set_alpha(_sources.chest ? 1 : 0);
     }
 }
 
