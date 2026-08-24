@@ -8,6 +8,7 @@ Pin active quests to a compact HUD panel and get an in-game sound plus notificat
 
 - Adds a **Pin quest / Unpin quest** button to active quest details in the Journal.
 - Keeps up to three quests visible in a compact panel on either side of the HUD.
+- Opens a pinned quest directly in the Journal when its HUD card is clicked; the header X remains dedicated to unpinning it.
 - Places the panel on either side of the HUD and dynamically follows the visible vanilla HUD above it: money and essence on the right, or health, stamina, mana, and status effects on the left.
 - Keeps long quest titles on one line and shortens them with an ellipsis when necessary.
 - Shows the current objective and every progress row supported by the vanilla Journal, including backpack items and seal offerings.
@@ -15,8 +16,9 @@ Pin active quests to a compact HUD panel and get an in-game sound plus notificat
 - Caps objectives at two lines in Compact mode and three lines at every other width, adding an ellipsis when needed so narrow panels do not become taller than wider ones.
 - Adds a small mouse-clickable **X** to each HUD card so it can be unpinned without reopening the Journal.
 - Shows a vanilla storage icon and the amount kept in player-owned chests when the required item is missing from the backpack.
-- For seal and donation-box objectives, keeps the main counter tied to items actually supplied and adds measured Backpack/Chest stock labels below it when relevant.
+- For seal and donation-box objectives, keeps the main counter tied to items actually supplied and adds compact backpack/chest icon-and-count rows below it when relevant.
 - For backpack-item objectives, marks active quests with a backpack and/or chest icon when useful required items exist in either source. Chest contents are also listed with exact quantities in the quest details, without requiring the quest to be pinned.
+- Marks pinned quests in the active-quest list with the vanilla pin icon, and gives the envelope, backpack, and chest indicators a consistent visual size and spacing.
 - Plays a subtle vanilla UI sound and shows a localized notification when a newly obtained item advances any active quest, whether pinned or not.
 - Stores pinned quest keys in MMAPI's per-save sidecar; it does not alter the vanilla save.
 - Supports mouse, keyboard, and controller navigation through the vanilla quest-detail pilot.
@@ -36,7 +38,7 @@ Understand delivery progress without searching every storage container:
 
 ![A delivery quest showing deposited, backpack, and chest quantities](docs/images/deliverables-backpack-chest.png)
 
-For delivery-box and seal objectives, the dark counter on the right remains the authoritative amount already delivered. The secondary **Backpack** and **Chest** values show stock you can use, but they do not count as quest progress until you deposit it. Empty sources are omitted to keep the card compact, and long item names are shortened without covering the counters.
+For delivery-box and seal objectives, the dark counter on the right remains the authoritative amount already delivered. A backpack or chest icon followed by `xN` shows stock you can use, but it does not count as quest progress until you deposit it. Available sources share one compact line directly below their item, backpack first and chest second; empty sources are omitted, and long item names are shortened without covering the counters.
 
 ### Requirements
 
@@ -52,7 +54,8 @@ Copy only the [`quest_pins`](quest_pins) directory into the game's `mods` direct
 1. Open **Journal → Quests** and select an active quest.
 2. Use **Pin quest** below its objectives. Up to three quests can be visible at once.
 3. Close the Journal to see their current objectives and vanilla progress rows on the HUD.
-4. Use the **X** in a card header or the **Unpin quest** button in the Journal to remove it.
+4. Click a card to reopen that quest directly in the Journal.
+5. Use the **X** in a card header or the **Unpin quest** button in the Journal to remove it.
 
 Pinning and item alerts are independent. By default, obtaining a missing backpack item can notify you for **any active quest**, even when it is not pinned. Settings can restrict alerts to pinned quests only, and sound and visual notifications can be disabled separately. If one acquisition helps several monitored quests, each quest can receive its own notification while the confirmation sound plays only once.
 
@@ -74,6 +77,7 @@ Open **Journal → Settings → Quest Pins** to choose among five balanced panel
 
 - Añade un botón **Fijar misión / Desfijar misión** a los detalles de cada misión activa.
 - Mantiene hasta tres misiones visibles en un panel compacto en cualquiera de los laterales del HUD.
+- Abre directamente una misión fijada en el Diario al pulsar su tarjeta del HUD; la X del encabezado sigue dedicada a desfijarla.
 - Permite colocar el panel en cualquier lateral y sigue dinámicamente el HUD vanilla visible sobre él: dinero y esencias a la derecha; salud, energía, maná y efectos de estado a la izquierda.
 - Mantiene los títulos largos en una sola línea y los acorta con puntos suspensivos cuando es necesario.
 - Muestra el objetivo actual y todas las filas de progreso compatibles con el Diario vanilla, incluidos los objetos de la mochila y las ofrendas de los sellos.
@@ -81,8 +85,9 @@ Open **Journal → Settings → Quest Pins** to choose among five balanced panel
 - Limita los objetivos a dos líneas en el modo Compacto y a tres en las demás anchuras, añadiendo puntos suspensivos cuando sea necesario para que un panel estrecho no termine siendo más alto que uno ancho.
 - Añade una pequeña **X** pulsable con el ratón a cada tarjeta del HUD para desfijarla sin volver a abrir el Diario.
 - Si falta un objeto en la mochila pero está guardado, muestra el icono vanilla de almacenamiento y la cantidad disponible en los cofres del jugador.
-- En objetivos de sellos y cajas de donaciones, mantiene el contador principal ligado a lo realmente entregado y añade debajo las cantidades disponibles en Mochila/Cofre cuando corresponda.
+- En objetivos de sellos y cajas de donaciones, mantiene el contador principal ligado a lo realmente entregado y añade debajo filas compactas de icono y cantidad para mochila/cofre cuando corresponda.
 - En objetivos de objetos de mochila, marca las misiones activas con un icono de mochila y/o cofre cuando hay objetos necesarios útiles en cualquiera de las dos fuentes. También muestra el contenido de los cofres con cantidades exactas en los detalles, aunque la misión no esté fijada.
+- Marca las misiones fijadas en la lista de misiones activas con el pin vanilla y mantiene un tamaño y espaciado visual coherentes entre los indicadores de sobre, mochila y cofre.
 - Reproduce un sonido sutil del juego y muestra una notificación cuando un objeto recién obtenido ayuda a cualquier misión activa, esté fijada o no.
 - Guarda las misiones fijadas por partida mediante el archivo auxiliar de MMAPI; no modifica el guardado original.
 - Funciona con ratón, teclado y mando mediante la navegación vanilla del Diario.
@@ -102,7 +107,7 @@ Comprueba el progreso de una entrega sin buscar en cada cofre:
 
 ![Una misión de entrega con cantidades entregadas, en la mochila y en cofres](docs/images/deliverables-backpack-chest.png)
 
-En los objetivos de cajas de donaciones y sellos, el contador oscuro de la derecha sigue mostrando la cantidad realmente **entregada**. Los valores secundarios **Mochila** y **Cofre** indican las existencias disponibles, pero no cuentan para la misión hasta que las deposites. Las fuentes vacías se omiten para mantener la tarjeta compacta y los nombres largos se acortan sin tapar los contadores.
+En los objetivos de cajas de donaciones y sellos, el contador oscuro de la derecha sigue mostrando la cantidad realmente **entregada**. Un icono de mochila o cofre seguido de `xN` indica las existencias disponibles, pero no cuentan para la misión hasta que las deposites. Las fuentes disponibles comparten una línea compacta justo debajo del objeto, primero mochila y después cofre; las fuentes vacías se omiten y los nombres largos se acortan sin tapar los contadores.
 
 ### Instalación
 
@@ -119,7 +124,8 @@ Copia únicamente la carpeta [`quest_pins`](quest_pins) dentro de `mods`, aplica
 2. Selecciona una misión activa.
 3. Pulsa **Fijar misión** bajo sus objetivos.
 4. Cierra el Diario: el objetivo queda visible en el lateral elegido.
-5. Usa la **X** de la tarjeta o el botón **Desfijar misión** del Diario para quitarla.
+5. Pulsa una tarjeta para volver a abrir directamente esa misión en el Diario.
+6. Usa la **X** de la tarjeta o el botón **Desfijar misión** del Diario para quitarla.
 
 Fijar misiones y recibir avisos son funciones independientes. De forma predeterminada, conseguir un objeto pendiente en la mochila puede avisarte para **cualquier misión activa**, aunque no esté fijada. Los ajustes permiten limitar los avisos a las misiones fijadas y desactivar por separado el sonido y las notificaciones visuales. Si un mismo objeto ayuda a varias misiones vigiladas, cada misión puede mostrar su propio aviso, pero el sonido se reproduce una sola vez.
 
