@@ -42,8 +42,8 @@ For delivery-box and seal objectives, the dark counter on the right remains the 
 
 ### Requirements
 
-- Fields of Mistria 1.0.4 (Steam build 24820767)
-- MOMI/MMAPI 0.15.6 or newer
+- Fields of Mistria 1.0.6 (Steam build 25583279)
+- MOMI/MMAPI 0.16.5 or newer
 
 ### Installation
 
@@ -115,8 +115,8 @@ Copia únicamente la carpeta [`quest_pins`](quest_pins) dentro de `mods`, aplica
 
 ### Requisitos
 
-- Fields of Mistria 1.0.4 (Steam build 24820767)
-- MOMI/MMAPI 0.15.6 o posterior
+- Fields of Mistria 1.0.6 (Steam build 25583279)
+- MOMI/MMAPI 0.16.5 o posterior
 
 ### Uso
 
@@ -140,3 +140,9 @@ El HUD compacto acorta deliberadamente los títulos, objetivos y nombres de obje
 ### Configuración
 
 Abre **Diario → Ajustes → Quest Pins** para elegir entre cinco anchuras equilibradas —112, 136, 160, 184 y 208 píxeles—, colocar el panel a la izquierda o a la derecha, decidir si los avisos cubren todas las misiones activas o solo las fijadas, y activar o desactivar el sonido y las notificaciones. De forma predeterminada se vigilan todas las misiones activas. Los cambios se guardan inmediatamente.
+
+## Compatibility refresh / Actualización de compatibilidad — 0.1.11
+
+Fields of Mistria 1.0.6 (Steam build 25583279), official MOMI/MMAPI 0.16.5. Updates compatibility and repairs the HUD X hit area; config and per-save schemas remain unchanged. Strict lint and required compilation pass. In-game regression passed on 2026-10-10, including HUD X unpinning and card navigation.
+
+Actualiza la compatibilidad y corrige la zona de clic de la X del HUD; conserva la configuración y los datos auxiliares por partida. Lint estricto y compilación obligatoria correctos. La prueba en juego se confirmó el 2026-10-10, incluida la X para desfijar y la navegación de las tarjetas.

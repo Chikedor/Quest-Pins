@@ -1,11 +1,11 @@
 # Technical research notes
 
-Research date: 2026-08-11–2026-08-16.
+Research date: 2026-08-11â€“2026-08-16.
 
 ## Supported versions
 
-- Fields of Mistria 1.0.4, Steam build 24820767.
-- MOMI/MMAPI 0.15.6, tag `v0.15.6`, commit `288d843a57df4ee7c7bab224925fde1ce54d1bf4`.
+- Fields of Mistria: 1.0.6, Steam build 25583279.
+- MOMI/MMAPI: 0.16.5, tag `v0.16.5`, commit `66fac9b03b97b8cfb6d9bd01adb793ac0d190be4`.
 
 ## Player-visible objective
 
@@ -46,7 +46,7 @@ Official MOMI 0.15.5 failed its global `dungeon_floor_bracket` seam against the 
 - After vanilla creates a requirement row, its name node is constrained to one line and truncated with the same measured ellipsis helper as tracker titles. Icons and counters remain untouched, while long localized item names can no longer multiply a card's row height.
 - A tested `fnt_cubic_11` compact-body experiment changed the typeface but did not materially reduce its rendered size, so it was removed. All presets retain the standard localized font. Instead, Compact clamps objectives to two measured lines and all other widths clamp them to three; long requirement names remain single-line. The HUD deliberately trades secondary prose for a predictable footprint while the Journal retains the complete text.
 - Each tracker header reserves its top-right corner for a 14-pixel vanilla-style mouse button. Its callback receives the quest key explicitly and delegates to the existing safe unpin path.
-- Version 0.1.10 makes the remaining card area clickable. It submits the same deferred `obj_ari.ui_journal_request` used by the vanilla HUD, then activates the matching vanilla Quest Log row after the Journal exists; the row's own callback preserves read-envelope and detail-page behavior. Anchor resolves only one hovered node and scans newer nodes first, so the later-created header X retains priority over its tappable parent card.
+- Version 0.1.10 makes the remaining card area clickable. It submits the same deferred `obj_ari.ui_journal_request` used by the vanilla HUD, then activates the matching vanilla Quest Log row after the Journal exists; the row's own callback preserves read-envelope and detail-page behavior. The original assumption that the later-created header X retained priority over its tappable parent card was disproved by the 1.0.6 regression; see the 0.1.11 correction below.
 - Acquisition detection compares item ids required by the current stages of every active quest by default, and only on Toolbar inventory refreshes. An in-game setting can limit this scope to pinned quests.
 - Alert scope has its own signature, separate from the tracker signature. Loading a save, accepting or completing a quest, advancing a stage, changing alert scope, or changing the pinned set while using pinned-only scope rebuilds the inventory baseline without generating retroactive alerts.
 - When one acquisition helps multiple monitored quests, each affected quest may receive its own toast, while the sound plays once for that refresh.
@@ -122,7 +122,7 @@ Validated in game on 2026-08-19 for Quest Pins 0.1.7:
 
 - A mine-seal mission using `Requirement.SuppliedItems` renders all four vanilla item rows in its pinned HUD card.
 - The header X unpins a quest directly from the HUD and resolves through localization without displaying `MISSING`.
-- Long requirement names remain on one line, and the revised 112–208 pixel width presets retain the standard game font while keeping narrow cards shorter through measured objective-line limits.
+- Long requirement names remain on one line, and the revised 112â€“208 pixel width presets retain the standard game font while keeping narrow cards shorter through measured objective-line limits.
 
 Validated in game on 2026-08-20 for Quest Pins 0.1.8 with Fields of Mistria 1.0.4 build 24820767 and MOMI/MMAPI 0.15.6:
 
@@ -135,3 +135,36 @@ Validated in game on 2026-08-24 for Quest Pins 0.1.10 with the same supported ga
 - Backpack and chest quantities share one compact secondary row below their requirement, with backpack first and a stable gap before chest stock.
 - Main item, backpack, and chest sprites are visually centered on the same fixed icon axis despite their different sprite bounds.
 - Item labels and `xN` values begin after the shared icon column, and consecutive requirements remain visually separated without unused vertical rows.
+
+## Compatibility refresh â€” 0.1.11 (2026-10-10)
+
+- Executable product/file version: 1.0.6; Steam buildid and TargetBuildID: 25583279.
+- Official latest stable MOMI: [v0.16.5](https://github.com/Garethp/Mods-of-Mistria-Installer/releases/tag/v0.16.5), commit `66fac9b03b97b8cfb6d9bd01adb793ac0d190be4`, published 2026-10-02. The Windows x64 CLI SHA-256 `8eb4fe1a6e22b019408a955da9ab8e95e8755a1cc37ed8b80c648d0586152283` matches the release asset's published digest.
+- Fresh Steam archive SHA-256: `efdb1cfbacf206507f0733c589976c08c96e28e3c406f62e5018395c8fb93e75`. It contains no MMAPI or mod paths. The old backup remains the pristine 1.0.4 hash `e55ef6bcaa7430008a6fcae7980ef06ca6912bb10431c177807b366a0fc5a450` and must not be used for this build. A 1.0.6-specific source marker is the `mill_is_repaired` / `repair_the_mill_pt_2` guard in `objects/meta/obj_sound_emitter.gml`, absent in the inspected 1.0.5 source.
+- Compared pristine 1.0.4 and 1.0.6 sources: Inventory, InventoryMenu, PlayerMenu, ToolbarMenu, InfoHudMenu, QuestLogMenu, RelationshipsMenu, MapMenu, Node, Npc, QuestDatabase, QuestLog and InputUtils are byte-identical. Requirements changes only the child-age predicate, outside these mods' requirements. StorageMenu adds nearest-supported-size asset lookup while retaining inventories, pilots, slot nodes and build order. Settings changes concern vanilla display/cursor settings; Vitals retains root and occupied-space layout. Journal's new canvas-unlocked gate does not change its sub-menu API.
+- Anchor now clears pending nodes and computes caches in `on_end_step()`; the mods use existing nodes and deferred idempotent setup, with no custom drawing. The NPC live-location/met-state path, active quest/current-stage path, requirement renderers, storage registry/ownership filters, and deferred `obj_ari.ui_journal_request` remain available. The player rendering rewrite does not change inventory resize or Journal opening.
+- Official 0.16.5 source confirms UI open/close seams and toolbar/vitals refresh payloads, device-agnostic hotkey bindings, lifecycle ticks, configuration helpers and per-save sidecar registration remain compatible. The refresh hook additionally covers CraftingMenu; these mods already filter the menu kind. Sidecars now have last-good backup/recovery without changing the registered payload.
+- All three unchanged baseline mods passed strict lint and required compilation against the exact 1.0.6 pristine archive, each listing its one GML file and expected installation namespace. The first candidate changed version metadata and minimum installer only; the corrected candidate additionally repairs HUD hit regions. Config and save schema numbers are unchanged.
+- The first compatibility-only candidate failed HUD X regression; the corrected candidate passed the user regression on 2026-10-10, as recorded below.
+
+### Final-version validation and installation (2026-10-10)
+
+Official MOMI 0.16.5 strict lint and required compile check passed version 0.1.11, listing one GML file under scripts/chikedor_quest_pins/. Combined strict apply with fail-on-skip compiled 108 framework/seamed files plus all three mod scripts and installed all three. Final assets.zip SHA-256: 2abfe06bc598a4fc2eee94f7396b6175ec78fee443bdcabafb1fd352f91449ec. Pristine backup SHA-256: efdb1cfbacf206507f0733c589976c08c96e28e3c406f62e5018395c8fb93e75. This mod source, installed-folder script and final archive entry share SHA-256 5f5455c002fea2e896e8f2f423f416e2afb7fdc5eaa54b23c1ba787d4d8d1bf8; manifest versions match. The new framework marker mmapi_monster_status_overlay and expected UI seams are present. In-game regression remains pending.
+
+### HUD X regression and replacement design (2026-10-10)
+
+The first compatibility-only 0.1.11 candidate passed compilation and installation, but the user reported that clicking the X did nothing, while other features worked. It is rejected as a known-good release. The GML was returned to HEAD (known-good 0.1.10 source) before applying the replacement and compatibility metadata.
+
+Pristine Anchor source explains the symptom: its reverse registrar traversal handles the X before the parent card. Mouse-down consumes the tap on the X and marks it deferred until release. The parent still contains the pointer, so `hover_node(parent)` calls `release_hovered_node()`, which clears the child's `in_tap` and `tap_is_deferred`. The already-consumed press cannot start a second tap on the parent; no callback runs on release. Creating the X later does not provide exclusive hover priority. This loop also exists in pristine 1.0.4, so this is a previously unverified interaction exposed by the refresh, not a new vanilla API change.
+
+The replacement leaves the card/header containers untappable. A header navigation node covers x=[0,width-20], while the 14px X occupies x=[width-17,width-3] and y=[3.5,17.5]. Body navigation starts at y=20. Thus X, header navigation and body navigation have no overlapping hit region. Both navigation nodes retain the vanilla deferred Journal route. The X calls an explicit unpin helper, with opt-in `HUD X activated` logging, and only toggles if the quest is still pinned, preventing stale controls from re-pinning it.
+
+Strict lint and required compilation passed the corrected candidate. The subsequent combined apply and repeat in-game test passed, as recorded below.
+
+### Corrected X candidate installation (2026-10-10)
+
+Official MOMI 0.16.5 passed strict lint and required compilation, then the combined apply again compiled 108 framework/seamed files and all three mod scripts, with `3 mod(s) installed` and no skips. Final corrected assets.zip SHA-256: `a0d0c5d3fc1f6cd9a5730235dadddbde7888444965c098fc30a1cd4d3e8ee291`. Quest Pins repository, installed-folder and final-archive GML SHA-256 all match `e92a78badad69d33d58c311003710e36a419d10791dbf463c05e62489ae04a14`. The pristine backup retains `efdb1cfbacf206507f0733c589976c08c96e28e3c406f62e5018395c8fb93e75`. The user confirmed on 2026-10-10 that the corrected X removes the pinned quest and the remaining card opens its Journal details. The earlier compatibility-only archive in this section is retained as rejected-candidate evidence, not the final release artifact.
+
+### Final runtime regression (2026-10-10)
+
+The initial user regression confirmed the submitted checklist except the HUD X. After installing the corrected candidate, the user explicitly confirmed both X unpinning and card navigation. The corrected 0.1.11 is the known-good milestone; the compatibility-only candidate is rejected. Pin state and config schemas remain unchanged.

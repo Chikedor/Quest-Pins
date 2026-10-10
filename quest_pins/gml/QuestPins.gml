@@ -1,7 +1,7 @@
 // Quest Pins
-// Fields of Mistria 1.0.4 / MOMI + MMAPI 0.15.6
+// Fields of Mistria 1.0.6 / MOMI + MMAPI 0.16.5
 
-#macro QUEST_PINS_VERSION "0.1.10"
+#macro QUEST_PINS_VERSION "0.1.11"
 #macro QUEST_PINS_CONFIG_VERSION 2
 #macro QUEST_PINS_SAVE_VERSION 1
 #macro QP_TRACKER_X -6
@@ -153,6 +153,14 @@ function quest_pins_request_open(_quest_key) {
     // player state keeps ownership of whether a menu can open this frame.
     obj_ari.ui_journal_request = true;
     quest_pins_debug("Requested Journal quest=" + _quest_key);
+}
+
+function quest_pins_unpin_from_tracker(_quest_key) {
+    // Explicit unpin intent: a stale control must never re-pin a quest.
+    quest_pins_debug("HUD X activated quest=" + _quest_key);
+    if (quest_pins_is_pinned(_quest_key)) {
+        quest_pins_toggle(_quest_key);
+    }
 }
 
 function quest_pins_open_pending_quest() {
@@ -1020,11 +1028,7 @@ function quest_pins_rebuild_tracker() {
         var _task = _quest.tasks.get(_active.current_stage);
         var _card = ANCHOR.positional(_root)
             .set_size(_tracker_width, 1)
-            .set_y(_yy)
-            .set_tap_sound("SoundEffects/UI/UIExtraPositiveClick")
-            .set_tap_callback(function(_key) {
-                quest_pins_request_open(_key);
-            }, [_quest_key]);
+            .set_y(_yy);
 
         var _header = ANCHOR.nine_slice(_card)
             .set_size(_tracker_width, 21)
@@ -1039,6 +1043,14 @@ function quest_pins_rebuild_tracker() {
             .set_sprite(spr_ui_journal_magic_pin_icon)
             .set_align(Align.LeftIn, Align.Middle)
             .set_x(4);
+        // Anchor visits children first, then their parent. A tappable parent
+        // can steal hover from its X child and cancel the deferred mouse tap.
+        // Keep navigation and unpin hit areas separate, with no tappable card.
+        ANCHOR.positional(_header)
+            .set_size(_tracker_width - 20, 21)
+            .set_align(Align.LeftIn, Align.TopIn)
+            .set_tap_sound("SoundEffects/UI/UIExtraPositiveClick")
+            .set_tap_callback(quest_pins_request_open, [_quest_key]);
         ANCHOR.nine_slice(_header)
             .set_size(14, 14)
             .set_align(Align.RightIn, Align.Middle)
@@ -1047,14 +1059,14 @@ function quest_pins_rebuild_tracker() {
             .set_tap_sound("SoundEffects/UI/UIExtraPositiveClick")
             .add_text_label("mods/quest_pins/ui/unpin_short", COMMON_LUT, CommonLutIndex.Dark)
             .add_hover_outline()
-            .set_tap_callback(function(_key) {
-                quest_pins_toggle(_key);
-            }, [_quest_key]);
+            .set_tap_callback(quest_pins_unpin_from_tracker, [_quest_key]);
 
         var _body = ANCHOR.nine_slice(_card)
             .set_y(20)
             .set_size(_tracker_width, 20)
-            .set_sprite(spr_ui_generic_box_main);
+            .set_sprite(spr_ui_generic_box_main)
+            .set_tap_sound("SoundEffects/UI/UIExtraPositiveClick")
+            .set_tap_callback(quest_pins_request_open, [_quest_key]);
         var _objective = ANCHOR.text(_body)
             .set_key(_task.description)
             .set_align(Align.LeftIn, Align.TopIn)
